@@ -17,12 +17,20 @@ public class RVBinaryReader : BinaryReader
         }
     }
 
+    //BIS IS UTF8
     public RVBinaryReader(Stream stream)
-        : base(stream)
+        : base(stream, Encoding.UTF8)
     {
     }
+    
+    public byte[] PeekBytes(int amount = 1) {
+        var start = BaseStream.Position;
+        var returnVal = ReadBytes(amount);
+        BaseStream.Position = start;
+        return returnVal;
+    }
 
-    public string ReadAsciiz()
+    public string ReadAsciiZ()
     {
         var str = new StringBuilder();
 
@@ -31,15 +39,6 @@ public class RVBinaryReader : BinaryReader
             str.Append(ch);
 
         return str.ToString();
-    }
-
-    public byte[] ReadLZSS(uint expectedSize)
-    {
-        if (expectedSize < 1024)
-            return ReadBytes((int)expectedSize);
-
-        LZSS.ReadLZSS(BaseStream, out byte[] buffer, expectedSize, false);
-        return buffer;
     }
 
     public int ReadCompactInteger()

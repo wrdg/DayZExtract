@@ -22,7 +22,7 @@ internal sealed class ParamClass : ParamEntry
 
     public ParamClass(RVBinaryReader input)
     {
-        Name = input.ReadAsciiz();
+        Name = input.ReadAsciiZ();
         var offset = input.ReadUInt32();
         var oldPos = input.Position;
         input.Position = offset;
@@ -47,7 +47,7 @@ internal sealed class ParamClass : ParamEntry
 
     private void ReadCore(RVBinaryReader input)
     {
-        BaseClassName = input.ReadAsciiz();
+        BaseClassName = input.ReadAsciiZ();
 
         var nEntries = input.ReadCompactInteger();
         Entries = Enumerable.Range(0, nEntries).Select(_ => ReadParamEntry(input)).ToList();

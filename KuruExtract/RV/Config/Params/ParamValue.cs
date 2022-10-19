@@ -30,7 +30,7 @@ internal sealed class ParamValue : ParamEntry
     public ParamValue(RVBinaryReader input)
     {
         var subtype = (ValueType)input.ReadByte();
-        Name = input.ReadAsciiz();
+        Name = input.ReadAsciiZ();
         Value = new RawValue(input, subtype);
     }
 

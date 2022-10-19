@@ -8,7 +8,7 @@ internal sealed class ParamArray : ParamEntry
 
     public ParamArray(RVBinaryReader input)
     {
-        Name = input.ReadAsciiz();
+        Name = input.ReadAsciiZ();
         Array = new RawArray(input);
     }
 

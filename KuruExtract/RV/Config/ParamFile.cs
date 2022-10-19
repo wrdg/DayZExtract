@@ -32,7 +32,7 @@ internal sealed class ParamFile
 
         input.Position = offsetToEnums;
         var nEnumValues = input.ReadInt32();
-        EnumValues = Enumerable.Range(0, nEnumValues).Select(_ => new KeyValuePair<string, int>(input.ReadAsciiz(), input.ReadInt32())).ToList();
+        EnumValues = Enumerable.Range(0, nEnumValues).Select(_ => new KeyValuePair<string, int>(input.ReadAsciiZ(), input.ReadInt32())).ToList();
     }
 
     public override string? ToString()
