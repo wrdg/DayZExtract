@@ -8,8 +8,15 @@ namespace KuruExtract.RV.PBO;
 
 public sealed class PBOFile {
     public readonly string PBOPrefix;
+    public readonly string PBOProduct;
+    public readonly string PBOVersion;
 
-    private PBOFile(string pboPrefix) => PBOPrefix = pboPrefix;
+
+    private PBOFile(string pboPrefix, string product, string version) {
+        PBOPrefix = pboPrefix;
+        PBOProduct = product;
+        PBOVersion = version;
+    }
 
     public List<PBOEntry> PBOEntries { get; set; } = new();
     
@@ -18,7 +25,8 @@ public sealed class PBOFile {
         using var reader = new RVBinaryReader(stream);
         
         string? pboPrefix = null;
-        
+        string pboVersion = "0", pboProduct = "dayz";
+
         reader.ReadAsciiZ();
         if(reader.ReadInt32() != BitConverter.ToInt32(Encoding.ASCII.GetBytes("sreV"))) throw new Exception("Woah, version entry should be the first in all PBOs. Report this to developer");
         reader.BaseStream.Position += 16;
@@ -31,9 +39,12 @@ public sealed class PBOFile {
             var value = reader.ReadAsciiZ();
 
             if (propertyName == "prefix") pboPrefix = value;
+            if (propertyName == "product") pboProduct = value;
+            if (propertyName == "version") pboVersion = value;
+
         } while (propertyName != "");
 
-        var pbo = new PBOFile((pboPrefix ?? Path.GetFileNameWithoutExtension(destination)).Trim());
+        var pbo = new PBOFile((pboPrefix ?? Path.GetFileNameWithoutExtension(destination)).Trim(), pboProduct, pboVersion);
 
         do {
             var entry = PBOEntry.GetEntryMeta(reader);

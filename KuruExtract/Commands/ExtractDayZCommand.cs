@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace KuruExtract.Commands;
 
@@ -231,6 +232,11 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         bool exclude = settings.ExcludePatterns != null;
         string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
 
+        var pboMetadata = Path.Combine(settings.Destination!, $"{pbo.PBOPrefix}.txt");
+        File.WriteAllText( pboMetadata, "product=" + pbo.PBOProduct + ";\n" +
+                                        "prefix=" + pbo.PBOPrefix + ";\n" +
+                                        "version=" + pbo.PBOVersion + ";\n", Encoding.UTF8);
+        
         foreach (var file in CollectionsMarshal.AsSpan(pbo.PBOEntries))
         {
             if (!ShouldExclude(file.EntryName, exts, exclude))
