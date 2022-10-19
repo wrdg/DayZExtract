@@ -7,9 +7,6 @@
 		<Nullable>enable</Nullable>
 		<NoWarn>CA1416</NoWarn>
 		<Platforms>x64</Platforms>
-
-		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<PublishSingleFile>true</PublishSingleFile>
 	</PropertyGroup>
 
 	<PropertyGroup>
