@@ -46,45 +46,6 @@ public sealed class PBOFile {
 
         return pbo;
     }
-
-    public void WritePbo(string destination) => File.WriteAllBytes(destination, WritePbo().ToArray());
-    
-    public MemoryStream WritePbo() {
-        var stream = new MemoryStream();
-        using var writer = new RVBinaryWriter(stream);
-        writer.Write((byte)0x00);
-        writer.WriteAsciiZ("sreV");
-        writer.Write(new byte[15]);
-            
-        writer.WriteAsciiZ("prefix");
-        writer.WriteAsciiZ(PBOPrefix);
-            
-        writer.Write((byte) 0x00);
-
-        foreach (var entry in PBOEntries) entry.WriteEntryMeta(writer);
-
-        PBOEntry.WriteEmptyEntryMeta(writer);
-
-        foreach (var entry in PBOEntries) entry.WriteEntryData(writer);
-        
-        byte[] CalculatePBOChecksum() {
-            var oldPos = stream.Position;
-
-            stream.Position = 0;
-
-            var hash = new SHA1Managed().ComputeHash(stream);
-
-            stream.Position = oldPos;
-
-            return hash;
-        }
-
-        
-        var checksum = CalculatePBOChecksum();
-        writer.Write((byte) 0x0);
-        writer.Write(checksum);
-        return stream;
-    }
 }
 
 #pragma warning restore CS0618

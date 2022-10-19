@@ -7,6 +7,9 @@
 		<Nullable>enable</Nullable>
 		<NoWarn>CA1416</NoWarn>
 		<Platforms>x64</Platforms>
+
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<PublishSingleFile>true</PublishSingleFile>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -14,8 +17,8 @@
 		<AssemblyName>DayZExtract</AssemblyName>
 		<Company>Wardog</Company>
 		<Description>Extracts game content for DayZ</Description>
-		<FileVersion>1.0.3</FileVersion>
-		<InformationalVersion>1.0.3</InformationalVersion>
+		<FileVersion>1.0.4</FileVersion>
+		<InformationalVersion>1.0.4</InformationalVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

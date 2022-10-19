@@ -67,32 +67,11 @@ public sealed class PBOEntry {
 
         return new PBOEntry(mimeType, entryName, dataLength, originalSize);
     }
-
-    private void WriteEntryMeta(RVBinaryWriter writer, bool ignoreNoData = false) {
-        if(!ignoreNoData && !_dataWasRead) throw new NotSupportedException($"Cannot write entry meta without knowing its contents. ({EntryName})");
-        writer.WriteAsciiZ(EntryName);
-        writer.Write(IsCompressed() ? 0x43707273 : 0x00000000);
-        writer.Write(OriginalDataSize);
-
-        writer.Write(0);
-        writer.Write(0);
-
-        writer.Write(EntryData.Length);
-    }
-
-    public static void WriteEmptyEntryMeta(RVBinaryWriter writer) => EmptyEntry.WriteEntryMeta(writer, true);
     
-    public void WriteEntryMeta(RVBinaryWriter writer) => WriteEntryMeta(writer, false);
-
     public void ReadEntryData(RVBinaryReader reader) {
         // EntryData = reader.ReadBytes(PackedDataSize);
         Array.Copy(reader.ReadBytes(PackedDataSize), EntryData, EntryData.Length);
         _dataWasRead = true;
-    }
-
-    public void WriteEntryData(RVBinaryWriter writer) {
-        if (!_dataWasRead) throw new NotSupportedException("Cannot write entry data without knowing its contents.");
-        writer.Write(EntryData);
     }
 
     public void CompressEntry() {
