@@ -214,11 +214,6 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         {
             settings.Experimental = AnsiConsole.Confirm("Extract experimental", settings.Experimental);
             if (settings.Experimental) settings.InstallationPath = GamePath.Experimental;
-            
-            if (settings.InstallationPath is not null) return;
-
-            AnsiConsole.Markup("[red]Error:[/] DayZ Experimental does not seem to be installed.");
-            Environment.Exit(-1);
         }
     }
 
