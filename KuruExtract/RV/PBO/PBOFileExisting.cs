@@ -1,4 +1,5 @@
 ﻿using KuruExtract.RV.Config;
+using System.Text;
 
 namespace KuruExtract.RV.PBO;
 
@@ -30,7 +31,9 @@ internal sealed class PBOFileExisting : IPBOFileEntry
 
     public void Extract(string target)
     {
-        var fileName = FileName.Replace("config.bin", "config.cpp");
+        var fileName = FileName.EndsWith("config.bin")
+            ? FileName.Replace("config.bin", "config.cpp")
+            : FileName;
 
         var path = Path.Combine(target, fileName);
         var dir = Path.GetDirectoryName(path);
@@ -38,18 +41,23 @@ internal sealed class PBOFileExisting : IPBOFileEntry
         if (dir != null)
             Directory.CreateDirectory(dir);
 
-        using var targetFile = File.Create(path);
         using var source = OpenRead();
 
-        if (FileName.Contains("config.bin"))
+        if (FileName.EndsWith("config.bin") || FileName.EndsWith(".rvmat"))
         {
-            using var writer = new StreamWriter(targetFile);
             var param = new ParamFile(source);
 
-            writer.Write(param.ToString());
+            File.WriteAllText(path, param.ToString(), Encoding.UTF8);
+
+            if (FileName.EndsWith(".rvmat"))
+            {
+                Console.WriteLine(path);
+                Console.WriteLine();
+            }
             return;
         }
 
+        using var targetFile = File.Create(path);
         source.CopyTo(targetFile);
     }
 }
