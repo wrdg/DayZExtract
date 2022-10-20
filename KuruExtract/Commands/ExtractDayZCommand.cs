@@ -106,10 +106,9 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
-        AnsiConsole.WriteLine("Collecting game pbos...");
-        var pbos = GetPBOs(Path.Combine(settings.InstallationPath!, "dta")).ToList();
-        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, "addons")));
-        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, @"bliss\addons")));
+        var pbos = GetPBOs(Path.Combine(settings.InstallationPath!, "dta"), settings).ToList();
+        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, "addons"), settings));
+        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, @"bliss\addons"), settings));
 
         var progress = AnsiConsole.Progress()
             .HideCompleted(true)
@@ -131,38 +130,22 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
             {
                 var pbo = pbos[i];
 
-                if (!string.IsNullOrEmpty(pbo.Prefix) && !pbo.Prefix.Contains('\\'))
+                if (!string.IsNullOrEmpty(pbo.Prefix))
                     prefixes.Add(pbo.Prefix);
 
-                var task = ctx.AddTask(pbo.FileName!, false, pbo.PBOEntries.Count)
+                var task = ctx.AddTask(pbo.FileName!, false, pbo.Files.Count)
                     .IsIndeterminate();
 
                 tasks.Add(task);
             }
 
-            if (prefixes.Count < 1)
-            {
-                for (var i = 0; i < pbos.Count; i++)
-                {
-                    var pbo = pbos[i];
-                    var prefix = pbo.Prefix;
-
-                    if (!string.IsNullOrEmpty(prefix))
-                    {
-                        int index = prefix.IndexOf('\\', prefix.IndexOf('\\') + 1);
-                        prefixes.Add(prefix[..index]);
-                    }
-                }
-            }
-
-            var cleanTask = ctx.AddTask("Clean up old files", maxValue: pbos.Count);
+            var cleanTask = ctx.AddTask("Clean up old files", maxValue: prefixes.Count);
 
             while (!ctx.IsFinished)
             {
-                foreach (var pbo in pbos)
+                foreach (var prefix in prefixes)
                 {
-                    var prefix = pbo.Prefix;
-                    var path = Path.Combine(settings.Destination!, prefix!);
+                    var path = Path.Combine(settings.Destination!, prefix);
 
                     if (Directory.Exists(path))
                         Directory.Delete(path, true);
@@ -172,7 +155,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
                 foreach (var pbo in CollectionsMarshal.AsSpan(pbos))
                 {
-                    var task = tasks.First(x => x.Description == pbo.Prefix + ".pbo");
+                    var task = tasks.First(x => x.Description == pbo.FileName);
 
                     if (task.IsIndeterminate)
                         task.IsIndeterminate(false);
@@ -181,6 +164,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                         task.StartTask();
 
                     ExtractFiles(pbo, task, settings);
+                    pbo.Dispose();
                 }
             }
         });
@@ -211,14 +195,14 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                 .ValidationErrorMessage("[red]Not a valid path[/]")
                 .Validate(path => Directory.Exists(path)));
 
-        if (_promptExperimental && !settings.Experimental && GamePath.Experimental != null)
+        if (_promptExperimental && !settings.Experimental)
         {
             settings.Experimental = AnsiConsole.Confirm("Extract experimental", settings.Experimental);
             if (settings.Experimental) settings.InstallationPath = GamePath.Experimental;
         }
     }
 
-    private static IEnumerable<PBOFile> GetPBOs(string path)
+    private static IEnumerable<PBO> GetPBOs(string path, Settings settings)
     {
         if (!Directory.Exists(path))
             yield break;
@@ -226,21 +210,33 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         var pbos = Directory.GetFiles(path, "*.pbo", SearchOption.TopDirectoryOnly);
 
         for (int i = 0; i < pbos.Length; i++)
-            yield return new PBOFile(pbos[i]);
+            yield return new PBO(pbos[i]);
     }
 
-    private static void ExtractFiles(PBOFile pbo, ProgressTask task, Settings settings)
+    private static void ExtractFiles(PBO pbo, ProgressTask task, Settings settings)
     {
         bool exclude = settings.ExcludePatterns != null;
         string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
 
+        var pboName = pbo.FileName!.Substring(0, pbo.FileName.Length - 4);
+        var prefixPath = Path.Combine(settings.Destination!, pbo.Prefix!, pboName + ".txt");
+        var dir = Path.GetDirectoryName(prefixPath);
 
-        foreach (var file in CollectionsMarshal.AsSpan(pbo.PBOEntries))
+        if (dir != null)
+            Directory.CreateDirectory(dir);
+
+        using (var targetFile = File.Create(prefixPath))
         {
-            if (!ShouldExclude(file.EntryName, exts, exclude))
+            using var writer = new StreamWriter(targetFile);
+            writer.Write($"product={pbo.Product};\nprefix={pbo.Prefix};\nversion={pbo.Version};\n");
+        }
+
+        foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
+        {
+            if (!ShouldExclude(file.FileName, exts, exclude))
             {
                 var path = Path.Combine(settings.Destination!, pbo.Prefix ?? string.Empty);
-                file.ExtractEntry(path);
+                file.Extract(path);
             }
 
             task.Increment(1);

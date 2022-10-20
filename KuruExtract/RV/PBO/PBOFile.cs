@@ -1,54 +1,57 @@
-﻿using KuruExtract.RV.IO;
+﻿using KuruExtract.RV.Config;
 using System.Text;
 
 namespace KuruExtract.RV.PBO;
 
-public sealed class PBOFile
+internal sealed class PBOFile
 {
-    public string? FileName { get; private set; }
+    private readonly FileEntry _fileEntry;
+    private readonly PBO _pbo;
 
-    public string? Prefix { get; private set; }
-
-    public List<PBOEntry> PBOEntries { get; set; } = new();
-
-    public PBOFile(string pboPath)
+    public PBOFile(FileEntry fileEntry, PBO pbo)
     {
-        FileName = Path.GetFileName(pboPath);
+        _fileEntry = fileEntry;
+        _pbo = pbo;
+    }
 
-        var stream = File.OpenRead(pboPath);
-        using var reader = new RVBinaryReader(stream);
+    public string FileName => _fileEntry.FileName;
 
-        reader.ReadAsciiZ();
-        if (reader.ReadInt32() != BitConverter.ToInt32(Encoding.ASCII.GetBytes("sreV")))
-            throw new Exception("Woah, version entry should be the first in all PBOs. Report this to developer");
+    public int TimeStamp => _fileEntry.TimeStamp;
 
-        reader.BaseStream.Position += 16;
+    public int Size => _fileEntry.IsCompressed ? _fileEntry.UncompressedSize : _fileEntry.DataSize;
 
+    public bool IsCompressed => _fileEntry.IsCompressed;
 
-        string propertyName;
-        do
+    public int DiskSize => _fileEntry.DataSize;
+
+    public Stream OpenRead()
+    {
+        return _pbo.GetFileEntryStream(_fileEntry);
+    }
+
+    public void Extract(string target)
+    {
+        var fileName = FileName.EndsWith("config.bin")
+            ? FileName.Replace("config.bin", "config.cpp")
+            : FileName;
+
+        var path = Path.Combine(target, fileName);
+        var dir = Path.GetDirectoryName(path);
+
+        if (dir != null)
+            Directory.CreateDirectory(dir);
+
+        using var source = OpenRead();
+
+        if (FileName.EndsWith("config.bin") || FileName.EndsWith(".rvmat"))
         {
-            propertyName = reader.ReadAsciiZ();
-            if (propertyName == "") break;
+            var param = new ParamFile(source);
+            File.WriteAllText(path, param.ToString(), Encoding.UTF8);
 
-            var value = reader.ReadAsciiZ();
-
-            if (propertyName == "prefix")
-                Prefix = value;
+            return;
         }
-        while (propertyName != "");
 
-        do
-        {
-            var entry = PBOEntry.GetEntryMeta(reader);
-            if (entry != PBOEntry.EmptyEntry) PBOEntries.Add(entry);
-        }
-        while (reader.PeekBytes(21).Sum(b => b) != 0);
-
-        reader.BaseStream.Position += 21;
-
-        foreach (var pboEntry in PBOEntries)
-            pboEntry.ReadEntryData(reader);
-
+        using var targetFile = File.Create(path);
+        source.CopyTo(targetFile);
     }
 }

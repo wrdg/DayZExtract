@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using KuruExtract.RV.Compression;
+using System.Text;
 
 namespace KuruExtract.RV.IO;
 
@@ -16,21 +17,12 @@ public class RVBinaryReader : BinaryReader
         }
     }
 
-    //BIS IS UTF8
     public RVBinaryReader(Stream stream)
-        : base(stream, Encoding.UTF8)
+        : base(stream)
     {
-    }
-    
-    public byte[] PeekBytes(int amount = 1) 
-    {
-        var start = BaseStream.Position;
-        var returnVal = ReadBytes(amount);
-        BaseStream.Position = start;
-        return returnVal;
     }
 
-    public string ReadAsciiZ()
+    public string ReadAsciiz()
     {
         var str = new StringBuilder();
 
@@ -39,6 +31,15 @@ public class RVBinaryReader : BinaryReader
             str.Append(ch);
 
         return str.ToString();
+    }
+
+    public byte[] ReadLZSS(uint expectedSize)
+    {
+        if (expectedSize < 1024)
+            return ReadBytes((int)expectedSize);
+
+        LZSS.ReadLZSS(BaseStream, out byte[] buffer, expectedSize, false);
+        return buffer;
     }
 
     public int ReadCompactInteger()

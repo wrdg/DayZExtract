@@ -5,7 +5,7 @@ namespace KuruExtract.RV.Config;
 internal sealed class ParamExternClass : ParamEntry
 {
     public ParamExternClass(RVBinaryReader input)
-        : this(input.ReadAsciiZ())
+        : this(input.ReadAsciiz())
     {
     }
 

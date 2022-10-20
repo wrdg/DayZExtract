@@ -9,7 +9,7 @@ internal static class Constants
     {
         get
         {
-            return new Panel(new Markup("\nExtracts game content for DayZ\nby Wardog and Ryann\n").Centered())
+            return new Panel(new Markup("\nExtracts game content for DayZ\nby Wardog\n").Centered())
                 .Header($"ExtractDayZ v{Version}", Justify.Center)
                 .SafeBorder()
                 .Border(BoxBorder.Heavy)

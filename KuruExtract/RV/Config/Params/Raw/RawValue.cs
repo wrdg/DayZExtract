@@ -42,7 +42,7 @@ internal sealed class RawValue
         {
             case ValueType.Expression:
             case ValueType.String:
-                Value = input.ReadAsciiZ().Replace("\"", "\"\"");
+                Value = input.ReadAsciiz();
                 break;
             case ValueType.Float:
                 Value = input.ReadSingle();
