@@ -46,14 +46,8 @@ internal sealed class PBOFileExisting : IPBOFileEntry
         if (FileName.EndsWith("config.bin") || FileName.EndsWith(".rvmat"))
         {
             var param = new ParamFile(source);
-
             File.WriteAllText(path, param.ToString(), Encoding.UTF8);
 
-            if (FileName.EndsWith(".rvmat"))
-            {
-                Console.WriteLine(path);
-                Console.WriteLine();
-            }
             return;
         }
 
