@@ -35,7 +35,7 @@ internal sealed class UpdateChecker
 
             var update = JsonConvert.DeserializeObject<GitHubResponse>(response);
 
-            if (update == null) return false;
+            if (update == null || update.TagName == null) return false;
 
             if (CompareVersion(Version.Parse(Constants.Version), Version.Parse(update.TagName[1..])) >= 0)
                 return false;

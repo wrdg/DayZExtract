@@ -180,6 +180,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                         task.StartTask();
 
                     ExtractFiles(pbo, task, settings);
+                    pbo.Dispose();
                 }
             }
         });
