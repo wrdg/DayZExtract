@@ -155,12 +155,12 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                 }
             }
 
-            var cleanTask = ctx.AddTask("Clean up old files", maxValue: prefixes.Count);
+            var cleanTask = ctx.AddTask("Clean up old files", maxValue: pbos.Count);
 
             while (!ctx.IsFinished)
             {
-                foreach (var prefix in prefixes)
-                {
+                foreach (var pbo in pbos) {
+                    var prefix = pbo.PBOPrefix;
                     var path = Path.Combine(settings.Destination!, prefix);
 
                     if (Directory.Exists(path))
