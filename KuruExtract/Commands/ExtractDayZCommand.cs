@@ -218,7 +218,8 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         bool exclude = settings.ExcludePatterns != null;
         string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
 
-        var prefixPath = Path.Combine(settings.Destination!, pbo.Prefix!, "$PBOPREFIX$.txt");
+        var pboName = pbo.FileName!.Substring(0, pbo.FileName.Length - 4);
+        var prefixPath = Path.Combine(settings.Destination!, pbo.Prefix!, pboName + ".txt");
         var dir = Path.GetDirectoryName(prefixPath);
 
         if (dir != null)
