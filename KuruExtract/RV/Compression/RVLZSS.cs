@@ -1,6 +1,6 @@
-﻿namespace KuruExtract.RV.Compression; 
+﻿namespace System.IO.Compression;
 
-public class BisLZSS {
+public class RVLZSS {
     private const int PacketFormatUncompressed = 1;
     private const byte Space = 0x20;
     

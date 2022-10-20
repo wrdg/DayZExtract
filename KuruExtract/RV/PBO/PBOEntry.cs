@@ -1,4 +1,4 @@
-using KuruExtract.RV.Compression;
+using System.IO.Compression;
 using KuruExtract.RV.Config;
 using KuruExtract.RV.IO;
 
@@ -54,7 +54,7 @@ public sealed class PBOEntry {
     public static PBOEntry CreateEntry(string entryName, byte[] entryData, bool compressed = false) =>
         new PBOEntry(compressed ? PackingType.Compressed : PackingType.Uncompressed,
             entryName,
-            compressed ? BisLZSS.Compress(entryData) : entryData,
+            compressed ? RVLZSS.Compress(entryData) : entryData,
             entryData.Length);
 
     public static PBOEntry GetEntryMeta(RVBinaryReader reader) {
@@ -80,7 +80,7 @@ public sealed class PBOEntry {
 
         EntryMimeType = PackingType.Compressed;
         OriginalDataSize = EntryData.Length;
-        EntryData = BisLZSS.Compress(EntryData);
+        EntryData = RVLZSS.Compress(EntryData);
         PackedDataSize = EntryData.Length;
     }
 
@@ -90,7 +90,7 @@ public sealed class PBOEntry {
         try {
             EntryMimeType = PackingType.Compressed;
             var dataLn = EntryData.Length;
-            EntryData = BisLZSS.Compress(EntryData);
+            EntryData = RVLZSS.Compress(EntryData);
             OriginalDataSize = dataLn;
             PackedDataSize = EntryData.Length;
             return true;
@@ -111,7 +111,7 @@ public sealed class PBOEntry {
             Directory.CreateDirectory(dir);
 
         using var targetFile = File.Create(path);
-        using var source = new MemoryStream(IsCompressed() ? BisLZSS.Decompress(EntryData, OriginalDataSize) : EntryData);
+        using var source = new MemoryStream(IsCompressed() ? RVLZSS.Decompress(EntryData, OriginalDataSize) : EntryData);
 
         using (var reader = new BinaryReader(source)) {
             if (reader.BaseStream.Length >= 4 && reader.ReadByte() == '\0' && reader.ReadByte() == 'r' && reader.ReadByte() == 'a' &&
@@ -133,7 +133,7 @@ public sealed class PBOEntry {
         if (!_dataWasRead) throw new NotSupportedException("Cannot decompress an entry without knowing its contents.");
         if (!IsCompressed()) return;
         EntryMimeType = PackingType.Uncompressed;
-        EntryData = BisLZSS.Decompress(EntryData, OriginalDataSize);
+        EntryData = RVLZSS.Decompress(EntryData, OriginalDataSize);
         PackedDataSize = EntryData.Length;
     }
     
@@ -142,7 +142,7 @@ public sealed class PBOEntry {
         if(!IsCompressed()) return true;
         try {
             EntryMimeType = PackingType.Uncompressed;
-            EntryData = BisLZSS.Decompress(EntryData, OriginalDataSize);
+            EntryData = RVLZSS.Decompress(EntryData, OriginalDataSize);
             PackedDataSize = EntryData.Length;
             return true;
         } catch (Exception) {
