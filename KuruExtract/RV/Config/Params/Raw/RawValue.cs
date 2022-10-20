@@ -40,7 +40,7 @@ internal sealed class RawValue
         Type = type;
         Value = Type switch
         {
-            ValueType.Expression or ValueType.String => input.ReadAsciiz().Replace("\"", "\"\""),
+            ValueType.Expression or ValueType.String => input.ReadAsciiz(),
             ValueType.Float => input.ReadSingle(),
             ValueType.Int => input.ReadInt32(),
             ValueType.Int64 => input.ReadInt64(),
@@ -52,7 +52,7 @@ internal sealed class RawValue
     public override string? ToString()
     {
         if (Type == ValueType.Expression || Type == ValueType.String)
-            return $"\"{Value}\"";
+            return $"\"{((string)Value).Replace("\"", "\"\"")}\"";
 
         if (Type == ValueType.Float)
             return ((float)Value).ToString(CultureInfo.InvariantCulture);
