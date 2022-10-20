@@ -218,19 +218,6 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         bool exclude = settings.ExcludePatterns != null;
         string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
 
-        var pboName = pbo.FileName!.Substring(0, pbo.FileName.Length - 4);
-        var prefixPath = Path.Combine(settings.Destination!, pbo.Prefix!, pboName + ".txt");
-        var dir = Path.GetDirectoryName(prefixPath);
-
-        if (dir != null)
-            Directory.CreateDirectory(dir);
-
-        using (var targetFile = File.Create(prefixPath))
-        {
-            using var writer = new StreamWriter(targetFile);
-            writer.Write($"product={pbo.Product};\nprefix={pbo.Prefix};\nversion={pbo.Version};\n");
-        }
-
         foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
         {
             if (!ShouldExclude(file.FileName, exts, exclude))
