@@ -7,7 +7,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace KuruExtract.Commands;
 
@@ -159,7 +158,8 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
             while (!ctx.IsFinished)
             {
-                foreach (var pbo in pbos) {
+                foreach (var pbo in pbos) 
+                {
                     var prefix = pbo.PBOPrefix;
                     var path = Path.Combine(settings.Destination!, prefix);
 

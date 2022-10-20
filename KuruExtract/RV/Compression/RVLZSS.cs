@@ -1,12 +1,14 @@
 ﻿namespace System.IO.Compression;
 
-public class RVLZSS {
+public class RVLZSS 
+{
     private const int PacketFormatUncompressed = 1;
     private const byte Space = 0x20;
     
     //Compression probably breaks when applied to a file with 
     //a byte count over int.MaxValue ~ 2^(32-1)
-    public static byte[] Compress(byte[] data) {
+    public static byte[] Compress(byte[] data) 
+    {
         var output = new List<byte>();
         var buffer = new CompressionBuffer();
 
@@ -14,7 +16,8 @@ public class RVLZSS {
         var readData = 0;
 
         //Generate and add compressed data
-        while (readData < dataLength) {
+        while (readData < dataLength) 
+        {
             var packet = new Packet();
             readData = packet.Pack(data, readData, buffer);
 
@@ -34,11 +37,11 @@ public class RVLZSS {
 
     
 
-    private static IEnumerable<byte> CalculateChecksum(IEnumerable<byte> data) {
-        return BitConverter.GetBytes(data.Aggregate<byte, uint>(0, (current, t) => current + t));
-    }
+    private static IEnumerable<byte> CalculateChecksum(IEnumerable<byte> data) =>
+        BitConverter.GetBytes(data.Aggregate<byte, uint>(0, (current, t) => current + t));
 
-    private class Packet {
+    private class Packet 
+    {
         private const int m_DataBlockCount = 8;
         private const int m_MinPackBytes = 3;
         private const int m_MaxDataBlockSize = m_MinPackBytes + 0b1111;
@@ -49,12 +52,15 @@ public class RVLZSS {
         private List<byte> m_Next = new List<byte>();
         CompressionBuffer m_CompressionBuffer = new CompressionBuffer();
 
-        public int Pack(byte[] data, int currPos, CompressionBuffer buffer) {
+        public int Pack(byte[] data, int currPos, CompressionBuffer buffer) 
+        {
             m_CompressionBuffer = buffer;
 
-            for (var i = 0; i < m_DataBlockCount && currPos < data.Length; i++) {
+            for (var i = 0; i < m_DataBlockCount && currPos < data.Length; i++) 
+            {
                 var blockSize = Math.Min(m_MaxDataBlockSize, data.Length - currPos);
-                if (blockSize < m_MinPackBytes) {
+                if (blockSize < m_MinPackBytes) 
+                {
                     currPos += AddUncompressed(i, data, currPos);
                     continue;
                 }
@@ -65,27 +71,29 @@ public class RVLZSS {
             return currPos;
         }
 
-        public byte[] GetContent() {
+        public byte[] GetContent() 
+        {
             var output = new byte[1 + m_Content.Count];
             output[0] = BitConverter.GetBytes(m_Flagbits)[0];
 
-            for (var i = 1; i < output.Length; i++) {
-                output[i] = m_Content[i - 1];
-            }
+            for (var i = 1; i < output.Length; i++) output[i] = m_Content[i - 1];
 
             return output;
         }
 
-        public int AddUncompressed(int blockIndex, byte[] data, int currPos) {
+        public int AddUncompressed(int blockIndex, byte[] data, int currPos) 
+        {
             m_CompressionBuffer.AddByte(data[currPos]);
             m_Content.Add(data[currPos]);
             m_Flagbits += 1 << blockIndex;
             return 1;
         }
 
-        public int AddCompressed(int blockIndex, byte[] data, int currPos, int blockSize) {
+        public int AddCompressed(int blockIndex, byte[] data, int currPos, int blockSize) 
+        {
             m_Next = new List<byte>();
-            for (var i = 0; i < blockSize; i++) {
+            for (var i = 0; i < blockSize; i++) 
+            {
                 m_Next.Add(data[currPos + i]);
             }
 
@@ -97,36 +105,40 @@ public class RVLZSS {
             var sequence = m_CompressionBuffer.CheckSequence(next, blockSize);
 
             if (intersection.Length < m_MinPackBytes && whitespace < m_MinPackBytes &&
-                sequence.SourceBytes < m_MinPackBytes) {
+                sequence.SourceBytes < m_MinPackBytes) 
+            {
                 return AddUncompressed(blockIndex, data, currPos);
             }
 
             var processed = 0;
             short pointer = 0;
 
-            if (intersection.Length >= whitespace && intersection.Length >= sequence.SourceBytes) {
+            if (intersection.Length >= whitespace && intersection.Length >= sequence.SourceBytes) 
+            {
                 pointer = CreatePointer(m_CompressionBuffer.GetLength() - intersection.Position, intersection.Length);
                 processed = intersection.Length;
             }
-            else if (whitespace >= intersection.Length && whitespace >= sequence.SourceBytes) {
+            else if (whitespace >= intersection.Length && whitespace >= sequence.SourceBytes) 
+            {
                 pointer = CreatePointer(currPos + whitespace, whitespace);
                 processed = whitespace;
             }
-            else {
+            else 
+            {
                 pointer = CreatePointer(sequence.SequenceBytes, sequence.SourceBytes);
                 processed = sequence.SourceBytes;
             }
 
             m_CompressionBuffer.AddBytes(data, currPos, processed);
             var tmp = BitConverter.GetBytes(pointer);
-            foreach (var t in tmp) {
+            foreach (var t in tmp) 
                 m_Content.Add(t);
-            }
 
             return processed;
         }
 
-        short CreatePointer(int offset, int length) {
+        short CreatePointer(int offset, int length) 
+        {
             //4 bits
             //00001111 00000000
             var lengthEntry = (short) ((length - m_MinPackBytes) << 8);
@@ -138,13 +150,16 @@ public class RVLZSS {
         }
     }
 
-    private class CompressionBuffer {
-        public struct Intersection {
+    private class CompressionBuffer 
+    {
+        public struct Intersection 
+        {
             public int Position;
             public int Length;
         }
 
-        public struct Sequence {
+        public struct Sequence 
+        {
             public int SourceBytes;
             public int SequenceBytes;
         }
@@ -153,21 +168,21 @@ public class RVLZSS {
         long m_Size = 0b0000111111111111;
         List<byte> m_Content;
 
-        public CompressionBuffer(long size = 0) {
-            if (size != 0) {
-                m_Size = size;
-            }
+        public CompressionBuffer(long size = 0) 
+        {
+            if (size != 0) m_Size = size;
 
             m_Content = new List<byte>();
         }
 
-        public int GetLength() {
-            return m_Content.Count;
-        }
+        public int GetLength() => m_Content.Count;
 
-        public void AddBytes(byte[] data, int currPos, int length) {
-            for (var i = 0; i < length; i++) {
-                if (m_Size < m_Content.Count + 1) {
+        public void AddBytes(byte[] data, int currPos, int length) 
+        {
+            for (var i = 0; i < length; i++) 
+            {
+                if (m_Size < m_Content.Count + 1) 
+                {
                     m_Content.RemoveAt(0);
                 }
 
@@ -175,33 +190,36 @@ public class RVLZSS {
             }
         }
 
-        public void AddByte(byte data) {
-            if (m_Size < m_Content.Count + 1) {
+        public void AddByte(byte data) 
+        {
+            if (m_Size < m_Content.Count + 1) 
                 m_Content.RemoveAt(0);
-            }
 
             m_Content.Add(data);
         }
 
-        public Intersection Intersect(byte[] buffer, int length) {
-            var intersection = new Intersection {
+        public Intersection Intersect(byte[] buffer, int length) 
+        {
+            var intersection = new Intersection 
+            {
                 Position = -1,
                 Length = 0
             };
 
-            if (length == 0 || m_Content.Count == 0) {
-                return intersection;
-            }
+            if (length == 0 || m_Content.Count == 0) return intersection;
 
             var offset = 0;
-            while (true) {
+            while (true) 
+            {
                 var next = IntersectAtOffset(buffer, length, offset);
 
-                if (next.Position >= 0 && intersection.Length < next.Length) {
+                if (next.Position >= 0 && intersection.Length < next.Length) 
+                {
                     intersection = next;
                 }
 
-                if (next.Position < 0 || next.Position > m_Content.Count - 1) {
+                if (next.Position < 0 || next.Position > m_Content.Count - 1) 
+                {
                     break;
                 }
 
@@ -211,18 +229,19 @@ public class RVLZSS {
             return intersection;
         }
 
-        Intersection IntersectAtOffset(byte[] buffer, int bLength, int offset) {
+        Intersection IntersectAtOffset(byte[] buffer, int bLength, int offset) 
+        {
             var position = m_Content.IndexOf(buffer[0], offset);
             var length = 0;
 
-            if (position >= 0 && position < m_Content.Count) {
+            if (position >= 0 && position < m_Content.Count) 
+            {
                 length++;
                 for (int bufIndex = 1, dataIndex = position + 1;
                      bufIndex < bLength && dataIndex < m_Content.Count;
-                     bufIndex++, dataIndex++) {
-                    if (m_Content[dataIndex] != buffer[bufIndex]) {
-                        break;
-                    }
+                     bufIndex++, dataIndex++) 
+                {
+                    if (m_Content[dataIndex] != buffer[bufIndex]) break;
 
                     length++;
                 }
@@ -235,12 +254,12 @@ public class RVLZSS {
         }
 
 
-        public int CheckWhiteSpace(byte[] buffer, int length) {
+        public int CheckWhiteSpace(byte[] buffer, int length) 
+        {
             var count = 0;
-            for (var i = 0; i < length; i++) {
-                if (buffer[i] != 0x20) {
-                    break;
-                }
+            for (var i = 0; i < length; i++) 
+            {
+                if (buffer[i] != 0x20) break;
 
                 count++;
             }
@@ -248,29 +267,34 @@ public class RVLZSS {
             return count;
         }
 
-        public Sequence CheckSequence(byte[] buffer, int length) {
+        public Sequence CheckSequence(byte[] buffer, int length) 
+        {
             Sequence result;
             result.SequenceBytes = 0;
             result.SourceBytes = 0;
 
             var maxSourceBytes = Math.Min(m_Content.Count, length);
-            for (var i = 1; i < maxSourceBytes; i++) {
+            for (var i = 1; i < maxSourceBytes; i++) 
+            {
                 var sequence = CheckSequenceImpl(buffer, length, i);
-                if (sequence.SourceBytes > result.SourceBytes) {
+                if (sequence.SourceBytes > result.SourceBytes) 
                     result = sequence;
-                }
             }
 
             return result;
         }
 
-        Sequence CheckSequenceImpl(byte[] buffer, int length, int sequenceBytes) {
+        Sequence CheckSequenceImpl(byte[] buffer, int length, int sequenceBytes) 
+        {
             var sourceBytes = 0;
             Sequence sequence;
 
-            while (sourceBytes < length) {
-                for (var i = m_Content.Count - sequenceBytes; i < m_Content.Count && sourceBytes < length; i++) {
-                    if (buffer[sourceBytes] != m_Content[i]) {
+            while (sourceBytes < length) 
+            {
+                for (var i = m_Content.Count - sequenceBytes; i < m_Content.Count && sourceBytes < length; i++) 
+                {
+                    if (buffer[sourceBytes] != m_Content[i]) 
+                    {
                         sequence.SourceBytes = sourceBytes;
                         sequence.SequenceBytes = sequenceBytes;
                         return sequence;
@@ -287,7 +311,8 @@ public class RVLZSS {
     }
 
 
-    public static byte[] Decompress(byte[] compressedData, int targetLength, bool useSignedChecksum = false) {
+    public static byte[] Decompress(byte[] compressedData, int targetLength, bool useSignedChecksum = false) 
+    {
         const int N = 4096;
         const int F = 18;
         const int THRESHOLD = 2;
@@ -306,14 +331,17 @@ public class RVLZSS {
         for (i = 0; i < N - F; i++) text_buf[i] = ' ';
         var r = N - F;
         
-        while (bytesLeft > 0) {
+        while (bytesLeft > 0) 
+        {
             int c;
-            if (((flags >>= 1) & 256) == 0) {
+            if (((flags >>= 1) & 256) == 0) 
+            {
                 c = input.ReadByte();
                 flags = c | 0xff00;
             }
 
-            if ((flags & 1) != 0) {
+            if ((flags & 1) != 0) 
+            {
                 c = input.ReadByte();
                 if (useSignedChecksum)
                     cSum += (sbyte)c;
@@ -328,7 +356,8 @@ public class RVLZSS {
                 r++;
                 r &= (N - 1);
             }
-            else {
+            else 
+            {
                 i = input.ReadByte();
                 int j = input.ReadByte();
                 i |= (j & 0xf0) << 4;
@@ -338,11 +367,13 @@ public class RVLZSS {
                 int ii = r - i,
                     jj = j + ii;
 
-                if (j + 1 > bytesLeft) {
+                if (j + 1 > bytesLeft) 
+                {
                     throw new ArgumentException("LZSS overflow");
                 }
 
-                for (; ii <= jj; ii++) {
+                for (; ii <= jj; ii++) 
+                {
                     c = (byte)text_buf[ii & (N - 1)];
                     if (useSignedChecksum)
                         cSum += (sbyte)c;

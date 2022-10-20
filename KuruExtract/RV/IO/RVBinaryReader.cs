@@ -22,7 +22,8 @@ public class RVBinaryReader : BinaryReader
     {
     }
     
-    public byte[] PeekBytes(int amount = 1) {
+    public byte[] PeekBytes(int amount = 1) 
+    {
         var start = BaseStream.Position;
         var returnVal = ReadBytes(amount);
         BaseStream.Position = start;
