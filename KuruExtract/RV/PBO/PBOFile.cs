@@ -49,13 +49,6 @@ public sealed class PBOFile {
         foreach (var pboEntry in PBOEntries) pboEntry.ReadEntryData(reader);
 
     }
-
-    public string PrintProperties() {
-        var propertiesBuilder = new StringBuilder($"/*\n * File Properties For {PBOName}" +
-               $"\n * Extracted using DayZExtract\n*/\n");
-        foreach (var (name, value) in PBOProperties) propertiesBuilder.Append(name).Append('=').Append(value).Append(";\n");
-        return propertiesBuilder.ToString();
-    }
 }
 
 #pragma warning restore CS0618

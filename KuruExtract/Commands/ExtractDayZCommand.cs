@@ -243,9 +243,6 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
             task.Increment(1);
         }
-        var prefixDirectory = Path.Combine(settings.Destination!, pbo.PBOPrefix!);
-        if(!Directory.Exists(prefixDirectory)) Directory.CreateDirectory(prefixDirectory);
-        File.WriteAllText(Path.Combine(prefixDirectory, $"{pbo.PBOName}.txt"), pbo.PrintProperties());
     }
 
     private static bool ShouldExclude(string fileName, string[]? exts, bool exclude)
