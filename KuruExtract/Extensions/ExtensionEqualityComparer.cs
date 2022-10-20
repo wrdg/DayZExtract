@@ -10,7 +10,7 @@ internal sealed class ExtensionEqualityComparer : IEqualityComparer<string>
         if (ReferenceEquals(x, null)) return false;
         if (ReferenceEquals(y, null)) return false;
 
-        return x.EndsWith(y) || y.EndsWith(x);
+        return x.EndsWith(y, StringComparison.OrdinalIgnoreCase) || y.EndsWith(x, StringComparison.OrdinalIgnoreCase);
     }
 
     public int GetHashCode([DisallowNull] string obj)
