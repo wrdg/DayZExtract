@@ -130,21 +130,37 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
             {
                 var pbo = pbos[i];
 
-                if (!string.IsNullOrEmpty(pbo.Prefix))
-                    prefixes.Add(pbo.Prefix);
+                if (!string.IsNullOrEmpty(pbo.PBOPrefix) && !pbo.PBOPrefix.Contains('\\'))
+                    prefixes.Add(pbo.PBOPrefix);
 
-                var task = ctx.AddTask(pbo.FileName!, false, pbo.Files.Count)
+                var task = ctx.AddTask(pbo.PBOPrefix! + ".pbo", false, pbo.PBOEntries.Count)
                     .IsIndeterminate();
 
                 tasks.Add(task);
             }
 
-            var cleanTask = ctx.AddTask("Clean up old files", maxValue: prefixes.Count);
+            if (prefixes.Count < 1)
+            {
+                for (var i = 0; i < pbos.Count; i++)
+                {
+                    var pbo = pbos[i];
+                    var prefix = pbo.PBOPrefix;
+
+                    if (!string.IsNullOrEmpty(prefix))
+                    {
+                        int index = prefix.IndexOf('\\', prefix.IndexOf('\\') + 1);
+                        prefixes.Add(prefix[..index]);
+                    }
+                }
+            }
+
+            var cleanTask = ctx.AddTask("Clean up old files", maxValue: pbos.Count);
 
             while (!ctx.IsFinished)
             {
-                foreach (var prefix in prefixes)
+                foreach (var pbo in pbos) 
                 {
+                    var prefix = pbo.PBOPrefix;
                     var path = Path.Combine(settings.Destination!, prefix);
 
                     if (Directory.Exists(path))
@@ -155,7 +171,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
                 foreach (var pbo in CollectionsMarshal.AsSpan(pbos))
                 {
-                    var task = tasks.First(x => x.Description == pbo.FileName);
+                    var task = tasks.First(x => x.Description == pbo.PBOPrefix + ".pbo");
 
                     if (task.IsIndeterminate)
                         task.IsIndeterminate(false);
@@ -164,7 +180,6 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                         task.StartTask();
 
                     ExtractFiles(pbo, task, settings);
-                    pbo.Dispose();
                 }
             }
         });
@@ -202,41 +217,28 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         }
     }
 
-    private static IEnumerable<PBO> GetPBOs(string path, Settings settings)
+    private static IEnumerable<PBOFile> GetPBOs(string path, Settings settings)
     {
         if (!Directory.Exists(path))
             yield break;
 
         var pbos = Directory.GetFiles(path, "*.pbo", SearchOption.TopDirectoryOnly);
 
-        for (int i = 0; i < pbos.Length; i++)
-            yield return new PBO(pbos[i]);
+        for (int i = 0; i < pbos.Length; i++) yield return new PBOFile(pbos[i]);
     }
 
-    private static void ExtractFiles(PBO pbo, ProgressTask task, Settings settings)
+    private static void ExtractFiles(PBOFile pbo, ProgressTask task, Settings settings)
     {
         bool exclude = settings.ExcludePatterns != null;
         string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
+        
 
-        var pboName = pbo.FileName!.Substring(0, pbo.FileName.Length - 4);
-        var prefixPath = Path.Combine(settings.Destination!, pbo.Prefix!, pboName + ".txt");
-        var dir = Path.GetDirectoryName(prefixPath);
-
-        if (dir != null)
-            Directory.CreateDirectory(dir);
-
-        using (var targetFile = File.Create(prefixPath))
+        foreach (var file in CollectionsMarshal.AsSpan(pbo.PBOEntries))
         {
-            using var writer = new StreamWriter(targetFile);
-            writer.Write($"product={pbo.Product};\nprefix={pbo.Prefix};\nversion={pbo.Version};\n");
-        }
-
-        foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
-        {
-            if (!ShouldExclude(file.FileName, exts, exclude))
+            if (!ShouldExclude(file.EntryName, exts, exclude))
             {
-                var path = Path.Combine(settings.Destination!, pbo.Prefix ?? string.Empty);
-                file.Extract(path);
+                var path = Path.Combine(settings.Destination!, pbo.PBOPrefix ?? string.Empty);
+                file.ExtractEntry(path);
             }
 
             task.Increment(1);

@@ -5,7 +5,7 @@ namespace KuruExtract.RV.Config;
 internal sealed class ParamDeleteClass : ParamEntry
 {
     public ParamDeleteClass(RVBinaryReader input)
-        : this(input.ReadAsciiz())
+        : this(input.ReadAsciiZ())
     {
     }
 

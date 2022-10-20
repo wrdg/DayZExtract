@@ -11,7 +11,7 @@ internal sealed class ParamArraySpec : ParamEntry
     public ParamArraySpec(RVBinaryReader input)
     {
         Flag = input.ReadInt32();
-        Name = input.ReadAsciiz();
+        Name = input.ReadAsciiZ();
         Array = new RawArray(input);
     }
 

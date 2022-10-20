@@ -1,57 +1,62 @@
-﻿using KuruExtract.RV.Config;
+﻿using System.Security.Cryptography;
 using System.Text;
+using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.PBO;
 
-internal sealed class PBOFile
+#pragma warning disable CS0618
+
+public sealed class PBOFile 
 {
-    private readonly FileEntry _fileEntry;
-    private readonly PBO _pbo;
 
-    public PBOFile(FileEntry fileEntry, PBO pbo)
+
+    private readonly string _pboPath;
+
+    public string PBOName => Path.GetFileNameWithoutExtension(_pboPath);
+    public string PBOPrefix => PBOProperties!["prefix"];
+    public string PBOProduct => PBOProperties!.ContainsKey("product") ? PBOProperties!["product"] : "dayz";
+    public string? PBOVersion => PBOProperties!.ContainsKey("version") ? PBOProperties!["version"] : null;
+
+    public List<PBOEntry> PBOEntries { get; set; } = new();
+    public Dictionary<string, string> PBOProperties { get; set; } = new();
+    
+    public PBOFile(string pboPath) 
     {
-        _fileEntry = fileEntry;
-        _pbo = pbo;
-    }
+        _pboPath = pboPath;
+        var stream = File.OpenRead(pboPath);
+        using var reader = new RVBinaryReader(stream);
+        
+        reader.ReadAsciiZ();
+        if(reader.ReadInt32() != BitConverter.ToInt32(Encoding.ASCII.GetBytes("sreV"))) 
+            throw new Exception("Woah, version entry should be the first in all PBOs. Report this to developer");
+        reader.BaseStream.Position += 16;
 
-    public string FileName => _fileEntry.FileName;
-
-    public int TimeStamp => _fileEntry.TimeStamp;
-
-    public int Size => _fileEntry.IsCompressed ? _fileEntry.UncompressedSize : _fileEntry.DataSize;
-
-    public bool IsCompressed => _fileEntry.IsCompressed;
-
-    public int DiskSize => _fileEntry.DataSize;
-
-    public Stream OpenRead()
-    {
-        return _pbo.GetFileEntryStream(_fileEntry);
-    }
-
-    public void Extract(string target)
-    {
-        var fileName = FileName.EndsWith("config.bin")
-            ? FileName.Replace("config.bin", "config.cpp")
-            : FileName;
-
-        var path = Path.Combine(target, fileName);
-        var dir = Path.GetDirectoryName(path);
-
-        if (dir != null)
-            Directory.CreateDirectory(dir);
-
-        using var source = OpenRead();
-
-        if (FileName.EndsWith("config.bin") || FileName.EndsWith(".rvmat"))
+        
+        string propertyName;
+        do 
         {
-            var param = new ParamFile(source);
-            File.WriteAllText(path, param.ToString(), Encoding.UTF8);
+            propertyName = reader.ReadAsciiZ();
+            if (propertyName == "") break;
 
-            return;
+            var value = reader.ReadAsciiZ();
+            PBOProperties.Add(propertyName, value);
+
         }
+        while (propertyName != "");
+        
+        do 
+        {
+            var entry = PBOEntry.GetEntryMeta(reader);
+            if(entry != PBOEntry.EmptyEntry) PBOEntries.Add(entry);
+        }
+        while (reader.PeekBytes(21).Sum(b =>  b) != 0);
 
-        using var targetFile = File.Create(path);
-        source.CopyTo(targetFile);
+        reader.BaseStream.Position += 21;
+        
+        foreach (var pboEntry in PBOEntries) 
+            pboEntry.ReadEntryData(reader);
+
     }
 }
+
+#pragma warning restore CS0618
