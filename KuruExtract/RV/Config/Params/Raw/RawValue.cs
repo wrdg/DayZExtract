@@ -38,27 +38,15 @@ internal sealed class RawValue
     public RawValue(RVBinaryReader input, ValueType type)
     {
         Type = type;
-        switch (Type)
+        Value = Type switch
         {
-            case ValueType.Expression:
-            case ValueType.String:
-                Value = input.ReadAsciiz();
-                break;
-            case ValueType.Float:
-                Value = input.ReadSingle();
-                break;
-            case ValueType.Int:
-                Value = input.ReadInt32();
-                break;
-            case ValueType.Int64:
-                Value = input.ReadInt64();
-                break;
-            case ValueType.Array:
-                Value = new RawArray(input);
-                break;
-
-            default: throw new ArgumentException();
-        }
+            ValueType.Expression or ValueType.String => input.ReadAsciiz().Replace("\"", "\"\""),
+            ValueType.Float => input.ReadSingle(),
+            ValueType.Int => input.ReadInt32(),
+            ValueType.Int64 => input.ReadInt64(),
+            ValueType.Array => new RawArray(input),
+            _ => throw new ArgumentException(),
+        };
     }
 
     public override string? ToString()

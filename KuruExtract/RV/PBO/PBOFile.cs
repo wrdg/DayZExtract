@@ -1,5 +1,4 @@
 ﻿using KuruExtract.RV.Config;
-using System.Text;
 
 namespace KuruExtract.RV.PBO;
 
@@ -41,17 +40,25 @@ internal sealed class PBOFile
         if (dir != null)
             Directory.CreateDirectory(dir);
 
+        using var targetFile = File.Create(path);
         using var source = OpenRead();
 
-        if (FileName.EndsWith("config.bin") || FileName.EndsWith(".rvmat"))
+        using var reader = new BinaryReader(source);
+        if (reader.BaseStream.Length >= 4
+            && reader.ReadByte() == '\0'
+            && reader.ReadByte() == 'r'
+            && reader.ReadByte() == 'a'
+            && reader.ReadByte() == 'P')
         {
+            reader.BaseStream.Position = 0;
+            using var writer = new StreamWriter(targetFile);
+
             var param = new ParamFile(source);
-            File.WriteAllText(path, param.ToString(), Encoding.UTF8);
+            writer.Write(param.ToString());
 
             return;
         }
 
-        using var targetFile = File.Create(path);
         source.CopyTo(targetFile);
     }
 }
