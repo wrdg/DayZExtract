@@ -58,7 +58,7 @@ public sealed class PBOEntry {
             entryData.Length);
 
     public static PBOEntry GetEntryMeta(RVBinaryReader reader) {
-        var entryName = reader.ReadAsciiZ().ToLower();
+        var entryName = reader.ReadAsciiZ();
         var mimeType = PackingType.Uncompressed;
         if (reader.ReadInt32() == (int)PackingType.Compressed) mimeType = PackingType.Compressed;
         var originalSize = reader.ReadInt32();

@@ -232,10 +232,12 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         bool exclude = settings.ExcludePatterns != null;
         string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
 
-        var pboMetadata = Path.Combine(settings.Destination!, $"{pbo.PBOPrefix}.txt");
-        File.WriteAllText( pboMetadata, "product=" + pbo.PBOProduct + ";\n" +
-                                        "prefix=" + pbo.PBOPrefix + ";\n" +
-                                        "version=" + pbo.PBOVersion + ";\n", Encoding.UTF8);
+        var pboMetadata = Path.Combine(settings.Destination!, pbo.PBOPrefix);
+        Directory.CreateDirectory(pboMetadata);
+        File.WriteAllText( Path.Combine(pboMetadata,  $"prefix.txt"),
+            "product=" + pbo.PBOProduct + ";\n" +
+            "prefix=" + pbo.PBOPrefix + ";\n" + 
+            "version=" + pbo.PBOVersion + ";\n", Encoding.UTF8);
         
         foreach (var file in CollectionsMarshal.AsSpan(pbo.PBOEntries))
         {
