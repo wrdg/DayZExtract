@@ -27,7 +27,7 @@ internal sealed class PBO : IDisposable
 
     public string? FileName => Path.GetFileName(PBOFilePath);
 
-    public List<IPBOFileEntry> Files { get; } = new();
+    public List<PBOFile> Files { get; } = new();
 
     public PBO(string fileName)
     {
@@ -79,7 +79,7 @@ internal sealed class PBO : IDisposable
             }
             else if (pboEntry.FileName != string.Empty)
             {
-                Files.Add(new PBOFileExisting(pboEntry, this));
+                Files.Add(new PBOFile(pboEntry, this));
             }
         }
         while (pboEntry.FileName != string.Empty || Files.Count == 0);

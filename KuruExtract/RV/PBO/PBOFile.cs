@@ -3,12 +3,12 @@ using System.Text;
 
 namespace KuruExtract.RV.PBO;
 
-internal sealed class PBOFileExisting : IPBOFileEntry
+internal sealed class PBOFile
 {
     private readonly FileEntry _fileEntry;
     private readonly PBO _pbo;
 
-    public PBOFileExisting(FileEntry fileEntry, PBO pbo)
+    public PBOFile(FileEntry fileEntry, PBO pbo)
     {
         _fileEntry = fileEntry;
         _pbo = pbo;
