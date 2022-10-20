@@ -112,13 +112,20 @@ public sealed class PBOEntry {
 
         using var targetFile = File.Create(path);
         using var source = new MemoryStream(IsCompressed() ? BisLZSS.Decompress(EntryData, OriginalDataSize) : EntryData);
-        if (EntryName.Contains("config.bin"))
+        if (EntryName.Contains("config.bin") || EntryName.EndsWith(".rvmat"))
         {
-            using var writer = new StreamWriter(targetFile);
-            var param = new ParamFile(source);
+            if (source.ToArray().Take(4).ToArray() == new[] {(byte) '\0', (byte) 'r', (byte) 'a', (byte) 'P'}) { 
+                /*
+                 * TODO: Inefficient if condition.
+                 * `source.ToArray().Take(4).ToArray()` is VERY lazy and makes unnecessary allocations
+                 * The check should instead be done directly on the MemoryStream -Flipper
+                 */
+                using var writer = new StreamWriter(targetFile);
+                var param = new ParamFile(source);
 
-            writer.Write(param.ToString());
-            return;
+                writer.Write(param.ToString());
+                return;
+            }
         }
 
         source.CopyTo(targetFile);

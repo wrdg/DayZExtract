@@ -224,21 +224,15 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
         var pbos = Directory.GetFiles(path, "*.pbo", SearchOption.TopDirectoryOnly);
 
-        for (int i = 0; i < pbos.Length; i++) yield return PBOFile.ReadPbo(pbos[i]);
+        for (int i = 0; i < pbos.Length; i++) yield return new PBOFile(pbos[i]);
     }
 
     private static void ExtractFiles(PBOFile pbo, ProgressTask task, Settings settings)
     {
         bool exclude = settings.ExcludePatterns != null;
         string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
-
-        var pboMetadata = Path.Combine(settings.Destination!, pbo.PBOPrefix);
-        Directory.CreateDirectory(pboMetadata);
-        File.WriteAllText( Path.Combine(pboMetadata,  $"prefix.txt"),
-            "product=" + pbo.PBOProduct + ";\n" +
-            "prefix=" + pbo.PBOPrefix + ";\n" + 
-            "version=" + pbo.PBOVersion + ";\n", Encoding.UTF8);
         
+
         foreach (var file in CollectionsMarshal.AsSpan(pbo.PBOEntries))
         {
             if (!ShouldExclude(file.EntryName, exts, exclude))
@@ -249,6 +243,9 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
             task.Increment(1);
         }
+        var prefixDirectory = Path.Combine(settings.Destination!, pbo.PBOPrefix!);
+        if(!Directory.Exists(prefixDirectory)) Directory.CreateDirectory(prefixDirectory);
+        File.WriteAllText(Path.Combine(prefixDirectory, $"{pbo.PBOName}.txt"), pbo.PrintProperties());
     }
 
     private static bool ShouldExclude(string fileName, string[]? exts, bool exclude)
