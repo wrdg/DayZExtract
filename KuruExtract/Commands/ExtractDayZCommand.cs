@@ -210,7 +210,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                 .ValidationErrorMessage("[red]Not a valid path[/]")
                 .Validate(path => Directory.Exists(path)));
 
-        if (_promptExperimental && !settings.Experimental)
+        if (_promptExperimental && !settings.Experimental && GamePath.Experimental != null)
         {
             settings.Experimental = AnsiConsole.Confirm("Extract experimental", settings.Experimental);
             if (settings.Experimental) settings.InstallationPath = GamePath.Experimental;
