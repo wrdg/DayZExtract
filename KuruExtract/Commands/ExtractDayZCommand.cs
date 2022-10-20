@@ -130,28 +130,13 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
             {
                 var pbo = pbos[i];
 
-                if (!string.IsNullOrEmpty(pbo.Prefix) && !pbo.Prefix.Contains('\\'))
+                if (!string.IsNullOrEmpty(pbo.Prefix))
                     prefixes.Add(pbo.Prefix);
 
                 var task = ctx.AddTask(pbo.FileName!, false, pbo.Files.Count)
                     .IsIndeterminate();
 
                 tasks.Add(task);
-            }
-
-            if (prefixes.Count < 1)
-            {
-                for (var i = 0; i < pbos.Count; i++)
-                {
-                    var pbo = pbos[i];
-                    var prefix = pbo.Prefix;
-
-                    if (!string.IsNullOrEmpty(prefix))
-                    {
-                        int index = prefix.IndexOf('\\', prefix.IndexOf('\\') + 1);
-                        prefixes.Add(prefix[..index]);
-                    }
-                }
             }
 
             var cleanTask = ctx.AddTask("Clean up old files", maxValue: prefixes.Count);
@@ -232,6 +217,18 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
     {
         bool exclude = settings.ExcludePatterns != null;
         string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
+
+        var prefixPath = Path.Combine(settings.Destination!, "$PBOPREFIX$.txt");
+        var dir = Path.GetDirectoryName(prefixPath);
+
+        if (dir != null)
+            Directory.CreateDirectory(dir);
+
+        using (var targetFile = File.Create(prefixPath))
+        {
+            using var writer = new StreamWriter(targetFile);
+            writer.Write($"product={pbo.Product};\nprefix={pbo.Prefix};\nversion={pbo.Version};\n");
+        }
 
         foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
         {
