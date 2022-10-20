@@ -21,9 +21,13 @@ internal sealed class PBO : IDisposable
 
     public string? Prefix { get; private set; }
 
+    public string? Product { get; private set; }
+
+    public string? Version { get; private set; }
+
     public string? FileName => Path.GetFileName(PBOFilePath);
 
-    public List<IPBOFileEntry> Files { get; } = new List<IPBOFileEntry>();
+    public List<IPBOFileEntry> Files { get; } = new();
 
     public PBO(string fileName)
     {
@@ -64,6 +68,12 @@ internal sealed class PBO : IDisposable
 
                     if (name == "prefix")
                         Prefix = value;
+
+                    if (name == "product")
+                        Product = value;
+
+                    if (name == "version")
+                        Version = value;
                 }
                 while (name != string.Empty);
             }
