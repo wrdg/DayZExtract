@@ -159,8 +159,8 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
             while (!ctx.IsFinished)
             {
-                foreach (var prefix in prefixes)
-                {
+                foreach (var pbo in pbos) {
+                    var prefix = pbo.PBOPrefix;
                     var path = Path.Combine(settings.Destination!, prefix);
 
                     if (Directory.Exists(path))
