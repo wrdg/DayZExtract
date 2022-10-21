@@ -14,8 +14,8 @@
 		<AssemblyName>DayZExtract</AssemblyName>
 		<Company>Wardog</Company>
 		<Description>Extracts game content for DayZ</Description>
-		<FileVersion>1.0.4</FileVersion>
-		<InformationalVersion>1.0.4</InformationalVersion>
+		<FileVersion>1.0.5</FileVersion>
+		<InformationalVersion>1.0.5</InformationalVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
