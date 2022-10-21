@@ -59,6 +59,7 @@ internal sealed class PBOFile
             return;
         }
 
+        reader.BaseStream.Position = 0;
         source.CopyTo(targetFile);
     }
 }
