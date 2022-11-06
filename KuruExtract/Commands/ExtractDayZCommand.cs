@@ -190,7 +190,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
     private static void PromptAttendant(Settings settings)
     {
         settings.Destination = AnsiConsole.Prompt(
-            new TextPrompt<string>("Desination path")
+            new TextPrompt<string>("Destination path")
                 .DefaultValue(settings.Destination ?? @"P:\")
                 .ValidationErrorMessage("[red]Not a valid path[/]")
                 .Validate(path => Directory.Exists(path)));
