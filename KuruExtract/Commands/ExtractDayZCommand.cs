@@ -6,6 +6,7 @@ using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.InteropServices;
 
 namespace KuruExtract.Commands;
@@ -173,10 +174,10 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
         Console.SetCursorPosition(0, 0);
 
-        var time = stopWatch.Elapsed.Minutes > 1 ? 2 : 1;
+        var timePrecision = stopWatch.Elapsed.Minutes > 1 ? 2 : 1;
 
         AnsiConsole.MarkupLine($"Extracted [yellow]{settings.InstallationPath}[/] to [yellow]{settings.Destination}[/]");
-        AnsiConsole.MarkupLine($"Took [yellow]{stopWatch.Elapsed.Humanize(time)}[/] to complete the operation");
+        AnsiConsole.MarkupLine($"Took [yellow]{stopWatch.Elapsed.Humanize(timePrecision, CultureInfo.InvariantCulture)}[/] to complete the operation");
 
         if (!settings.Unattended)
         {
