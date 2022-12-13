@@ -37,6 +37,10 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         [CommandOption("-e|--exclude-extensions")]
         [Description("List of extensions to be exluded from extraction")]
         public string[]? ExcludePatterns { get; set; }
+
+        [CommandOption("-p|--parallel")]
+        [Description("Maximum number of PBOs to extract simultaneously")]
+        public int DegreeOfParallelism { get; set; } = 1;
     }
 
     private static bool _promptExperimental;
@@ -141,8 +145,6 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
             var cleanTask = ctx.AddTask("Clean up old files", maxValue: prefixes.Count);
 
-            while (!ctx.IsFinished)
-            {
                 foreach (var prefix in prefixes)
                 {
                     var path = Path.Combine(settings.Destination!, prefix);
@@ -153,20 +155,17 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                     cleanTask.Increment(1);
                 }
 
-                foreach (var pbo in CollectionsMarshal.AsSpan(pbos))
+            var pboTasks = pbos.Select(pbo => (pbo, task: tasks.First(x => x.Description == pbo.FileName)));
+
+            pboTasks
+                .AsParallel()
+                .WithDegreeOfParallelism(settings.DegreeOfParallelism)
+                .ForAll(pboTask =>
                 {
-                    var task = tasks.First(x => x.Description == pbo.FileName);
-
-                    if (task.IsIndeterminate)
-                        task.IsIndeterminate(false);
-
-                    if (!task.IsStarted)
-                        task.StartTask();
-
+                    var (pbo, task) = pboTask;
                     ExtractFiles(pbo, task, settings);
                     pbo.Dispose();
-                }
-            }
+                });
         });
 
         stopWatch.Stop();
@@ -215,6 +214,12 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
     private static void ExtractFiles(PBO pbo, ProgressTask task, Settings settings)
     {
+        if (task.IsIndeterminate)
+            task.IsIndeterminate(false);
+
+        if (!task.IsStarted)
+            task.StartTask();
+
         bool exclude = settings.ExcludePatterns != null;
         string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
 
