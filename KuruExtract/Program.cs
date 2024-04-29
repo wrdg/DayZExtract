@@ -36,7 +36,7 @@ public class Program
         try
         {
 #if DEBUG
-            var result = app.Run(args.Length < 1 ? ["P:\\", "-i", "*.cpp", "-u"] : args);
+            var result = app.Run(args.Length < 1 ? ["P:\\", "-u"] : args);
 #else
             var result = app.Run(args.Length < 1 ? ["-h"] : args);
 #endif
