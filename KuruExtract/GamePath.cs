@@ -1,7 +1,6 @@
-﻿using Microsoft.Win32;
+﻿using KuruExtract.Steam;
 
 namespace KuruExtract;
-
 internal sealed class GamePath
 {
     public static string? Stable
@@ -10,8 +9,7 @@ internal sealed class GamePath
         {
             try
             {
-                using RegistryKey? key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\bohemia interactive\dayz");
-                return key?.GetValue("main") as string;
+                return SteamLibrary.Games[221100]?.InstallPath;
             }
             catch { return null; }
         }
@@ -23,8 +21,7 @@ internal sealed class GamePath
         {
             try
             {
-                using RegistryKey? key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\bohemia interactive\dayz exp");
-                return key?.GetValue("main") as string;
+                return SteamLibrary.Games[1024020]?.InstallPath;
             }
             catch { return null; }
         }
