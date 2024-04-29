@@ -2,7 +2,7 @@
 
 A quicker alternative to DayZ2P by Mikero and DayZ Tools Extract process. This application will show progress while unpacking the game data.
 
-![Extraction video](https://i.imgur.com/Qk2LWRK.gif)
+![Extraction video](https://github.com/wrdg/DayZExtract/blob/master/.github/assets/extraction.gif)
 
 #### If you use the installer, you will have two shortcuts to DayZExtract in your start menu items.
 - DayZExtract - extracts all content
