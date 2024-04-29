@@ -1,10 +1,9 @@
 ﻿using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.Config;
-
 internal sealed class ParamArray : ParamEntry
 {
-    public RawArray Array { get; private set; }
+    public RawArray Array { get; }
 
     public ParamArray(RVBinaryReader input)
     {
@@ -25,8 +24,8 @@ internal sealed class ParamArray : ParamEntry
         return Array.Entries.Select(e => e.Get<T>()).ToArray();
     }
 
-    public override string ToString(int indentionLevel = 0)
+    public override string ToString(int indentionLevel)
     {
-        return $"{new string(' ', indentionLevel * 4)}{Name}[]={Array.ToString()};";
+        return $"{new string(' ', indentionLevel * 4)}{Name}[]={Array};";
     }
 }

@@ -1,7 +1,6 @@
 ﻿using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.Config;
-
 internal sealed class ParamExternClass : ParamEntry
 {
     public ParamExternClass(RVBinaryReader input)
@@ -14,7 +13,7 @@ internal sealed class ParamExternClass : ParamEntry
         Name = name;
     }
 
-    public override string ToString(int indentionLevel = 0)
+    public override string ToString(int indentionLevel)
     {
         return $"{new string(' ', indentionLevel * 4)}class {Name};";
     }

@@ -1,7 +1,6 @@
 ﻿using KuruExtract.RV.Config;
 
 namespace KuruExtract.RV.PBO;
-
 internal sealed class PBOFile
 {
     private readonly FileEntry _fileEntry;

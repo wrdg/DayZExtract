@@ -1,5 +1,4 @@
 ﻿namespace KuruExtract.RV.Config;
-
 internal enum EntryType : byte
 {
     Class,

@@ -1,10 +1,9 @@
 ﻿using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.Config;
-
 internal sealed class ParamValue : ParamEntry
 {
-    public RawValue Value { get; private set; }
+    public RawValue Value { get; }
 
     public ParamValue(string name, bool value)
     {
@@ -34,8 +33,8 @@ internal sealed class ParamValue : ParamEntry
         Value = new RawValue(input, subtype);
     }
 
-    public override string ToString(int indentionLevel = 0)
+    public override string ToString(int indentionLevel)
     {
-        return $"{new string(' ', indentionLevel * 4)}{Name}={Value.ToString()};";
+        return $"{new string(' ', indentionLevel * 4)}{Name}={Value};";
     }
 }

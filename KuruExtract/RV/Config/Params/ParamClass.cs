@@ -2,12 +2,11 @@
 using System.Text;
 
 namespace KuruExtract.RV.Config;
-
 internal sealed class ParamClass : ParamEntry
 {
     public string BaseClassName { get; private set; } = string.Empty;
 
-    public List<ParamEntry> Entries { get; private set; } = new List<ParamEntry>(20);
+    public List<ParamEntry> Entries { get; private set; } = new(20);
 
     public ParamClass(string name, string baseclass, IEnumerable<ParamEntry> entries)
     {
@@ -66,14 +65,14 @@ internal sealed class ParamClass : ParamEntry
             $"{ind}class {Name}" :
             $"{ind}class {Name} : {BaseClassName}";
 
-        if (onlyClassBody)
-            return classBody.ToString();
-
-        return
-$@"{classHead}
-{ind}{{
-{classBody}{ind}}};";
+        return onlyClassBody
+            ? classBody.ToString()
+            : $$"""
+                {{classHead}}
+                {{ind}}{
+                {{classBody}}{{ind}}};
+                """;
     }
 
-    public override string ToString(int indentionLevel = 0) => ToString(indentionLevel, false);
+    public override string ToString(int indentionLevel) => ToString(indentionLevel, false);
 }

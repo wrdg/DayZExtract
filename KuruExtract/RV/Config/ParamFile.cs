@@ -1,7 +1,6 @@
 ﻿using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.Config;
-
 internal sealed class ParamFile
 {
     public ParamClass? Root { get; private set; }
@@ -22,7 +21,9 @@ internal sealed class ParamFile
     {
         var sig = new char[] { '\0', 'r', 'a', 'P' };
         if (!input.ReadBytes(4).SequenceEqual(sig.Select(c => (byte)c)))
+        {
             throw new ArgumentException();
+        }
 
         var ofpVersion = input.ReadInt32();
         var version = input.ReadInt32();

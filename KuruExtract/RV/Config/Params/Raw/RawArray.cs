@@ -1,10 +1,9 @@
 ﻿using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.Config;
-
 internal sealed class RawArray
 {
-    public List<RawValue> Entries { get; private set; }
+    public List<RawValue> Entries { get; }
 
     public RawArray(IEnumerable<RawValue> values)
     {

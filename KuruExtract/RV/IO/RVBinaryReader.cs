@@ -2,19 +2,12 @@
 using System.Text;
 
 namespace KuruExtract.RV.IO;
-
 public class RVBinaryReader : BinaryReader
 {
     public long Position
     {
-        get
-        {
-            return BaseStream.Position;
-        }
-        set
-        {
-            BaseStream.Position = value;
-        }
+        get => BaseStream.Position;
+        set => BaseStream.Position = value;
     }
 
     public RVBinaryReader(Stream stream)
@@ -28,7 +21,9 @@ public class RVBinaryReader : BinaryReader
 
         char ch;
         while ((ch = (char)ReadByte()) != 0)
+        {
             str.Append(ch);
+        }
 
         return str.ToString();
     }
@@ -38,7 +33,7 @@ public class RVBinaryReader : BinaryReader
         if (expectedSize < 1024)
             return ReadBytes((int)expectedSize);
 
-        LZSS.ReadLZSS(BaseStream, out byte[] buffer, expectedSize, false);
+        LZSS.ReadLZSS(BaseStream, out var buffer, expectedSize, false);
         return buffer;
     }
 

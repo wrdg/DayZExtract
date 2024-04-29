@@ -1,7 +1,6 @@
 ﻿using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.PBO;
-
 internal sealed class PBO : IDisposable
 {
     private FileStream? _pboFileStream;
@@ -27,7 +26,7 @@ internal sealed class PBO : IDisposable
 
     public string? FileName => Path.GetFileName(PBOFilePath);
 
-    public List<PBOFile> Files { get; } = new();
+    public List<PBOFile> Files { get; } = [];
 
     public PBO(string fileName)
     {
@@ -43,7 +42,7 @@ internal sealed class PBO : IDisposable
 
     private void ReadHeader(RVBinaryReader input)
     {
-        int curOffset = 0;
+        var curOffset = 0;
         FileEntry pboEntry;
 
         do
@@ -57,23 +56,27 @@ internal sealed class PBO : IDisposable
 
             if (pboEntry.IsVersion)
             {
-                string value, name;
+                string name;
                 do
                 {
                     name = input.ReadAsciiz();
                     if (string.IsNullOrEmpty(name))
                         break;
 
-                    value = input.ReadAsciiz();
+                    var value = input.ReadAsciiz();
 
-                    if (name == "prefix")
-                        Prefix = value;
-
-                    if (name == "product")
-                        Product = value;
-
-                    if (name == "version")
-                        Version = value;
+                    switch (name)
+                    {
+                        case "prefix":
+                            Prefix = value;
+                            break;
+                        case "product":
+                            Product = value;
+                            break;
+                        case "version":
+                            Version = value;
+                            break;
+                    }
                 }
                 while (name != string.Empty);
             }

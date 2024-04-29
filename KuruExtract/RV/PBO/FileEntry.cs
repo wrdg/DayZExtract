@@ -2,7 +2,6 @@
 using System.Text;
 
 namespace KuruExtract.RV.PBO;
-
 internal sealed class FileEntry
 {
     public string FileName { get; set; } = string.Empty;

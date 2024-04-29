@@ -1,7 +1,6 @@
 ﻿using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.Config;
-
 internal abstract class ParamEntry
 {
     public string Name { get; protected set; } = string.Empty;
@@ -22,7 +21,7 @@ internal abstract class ParamEntry
         };
     }
 
-    public virtual string? ToString(int indentionLevel = 0) => base.ToString();
+    public virtual string? ToString(int indentionLevel) => base.ToString();
 
     public override string? ToString() => ToString(0);
 }

@@ -2,12 +2,11 @@
 using System.Globalization;
 
 namespace KuruExtract.RV.Config;
-
 internal sealed class RawValue
 {
     public ValueType Type { get; set; }
 
-    public object Value { get; private set; }
+    public object Value { get; }
 
     public RawValue(string v)
     {
@@ -51,13 +50,12 @@ internal sealed class RawValue
 
     public override string? ToString()
     {
-        if (Type == ValueType.Expression || Type == ValueType.String)
-            return $"\"{((string)Value).Replace("\"", "\"\"")}\"";
-
-        if (Type == ValueType.Float)
-            return ((float)Value).ToString(CultureInfo.InvariantCulture);
-
-        return Value.ToString();
+        return Type switch
+        {
+            ValueType.Expression or ValueType.String => $"\"{((string)Value).Replace("\"", "\"\"")}\"",
+            ValueType.Float => ((float)Value).ToString(CultureInfo.InvariantCulture),
+            _ => Value.ToString()
+        };
     }
 
     internal T Get<T>()

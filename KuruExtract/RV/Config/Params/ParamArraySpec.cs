@@ -1,12 +1,11 @@
 ﻿using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.Config;
-
 internal sealed class ParamArraySpec : ParamEntry
 {
     public int Flag { get; }
 
-    public RawArray Array { get; private set; }
+    public RawArray Array { get; }
 
     public ParamArraySpec(RVBinaryReader input)
     {
@@ -29,12 +28,10 @@ internal sealed class ParamArraySpec : ParamEntry
         return Array.Entries.Select(e => e.Get<T>()).ToArray();
     }
 
-    public override string ToString(int indentionLevel = 0)
+    public override string ToString(int indentionLevel)
     {
-        if (Flag == 1)
-        {
-            return $"{new string(' ', indentionLevel * 4)}{Name}[]+={Array.ToString()};";
-        }
-        return $"{new string(' ', indentionLevel * 4)}{Name}[]={Array.ToString()}; // Unknown flag {Flag}";
+        return Flag == 1
+            ? $"{new string(' ', indentionLevel * 4)}{Name}[]+={Array};"
+            : $"{new string(' ', indentionLevel * 4)}{Name}[]={Array}; // Unknown flag {Flag}";
     }
 }
