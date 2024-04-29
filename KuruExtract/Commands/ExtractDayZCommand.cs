@@ -1,6 +1,7 @@
 ﻿using Humanizer;
 using KuruExtract.RV;
 using KuruExtract.RV.PBO;
+using KuruExtract.Steam;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
@@ -9,7 +10,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace KuruExtract.Commands;
-
 internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 {
     public sealed class Settings : CommandSettings
@@ -40,7 +40,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
         [CommandOption("-p|--parallel")]
         [Description("Maximum number of PBOs to extract simultaneously")]
-        public int DegreeOfParallelism { get; set; } = 1;
+        public int DegreeOfParallelism { get; set; } = 0;
     }
 
     private static bool _promptExperimental;
@@ -69,19 +69,19 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                 .Split(',', ';', '|');
         }
 
-        if (settings.IncludePatterns != null && settings.ExcludePatterns != null)
+        if (settings is { IncludePatterns: not null, ExcludePatterns: not null })
             return ValidationResult.Error("You may only specify include or exclude, not both.");
 
-        if (string.IsNullOrEmpty(settings.InstallationPath))
-        {
-            _promptExperimental = true;
-            settings.InstallationPath = settings.Experimental ? GamePath.Experimental : GamePath.Stable;
-        }
+        if (!string.IsNullOrEmpty(settings.InstallationPath))
+            return settings.InstallationPath == null
+                ? ValidationResult.Error("Unable to locate game installation path.")
+                : ValidationResult.Success();
+        _promptExperimental = true;
 
-        if (settings.InstallationPath == null)
-            return ValidationResult.Error("Unable to locate game installation path.");
+        SteamLibrary.FetchGames();
+        settings.InstallationPath = settings.Experimental ? GamePath.Experimental : GamePath.Stable;
 
-        return ValidationResult.Success();
+        return settings.InstallationPath == null ? ValidationResult.Error("Unable to locate game installation path.") : ValidationResult.Success();
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
@@ -91,7 +91,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
             if (Program.UpdateChecker.CheckUpdate())
             {
                 AnsiConsole.MarkupLine("An update is available!");
-                var update = AnsiConsole.Confirm("Would you like to update?", true);
+                var update = AnsiConsole.Confirm("Would you like to update?");
 
                 if (update)
                 {
@@ -110,19 +110,18 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
-        var pbos = GetPBOs(Path.Combine(settings.InstallationPath!, "dta"), settings).ToList();
-        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, "addons"), settings));
-        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, @"bliss\addons"), settings));
+        var pbos = GetPBOs(Path.Combine(settings.InstallationPath!, "dta")).ToList();
+        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, "addons")));
+        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, @"bliss\addons")));
 
         var progress = AnsiConsole.Progress()
             .HideCompleted(true)
-            .Columns(new ProgressColumn[]
-            {
+            .Columns([
                 new TaskDescriptionColumn(),
                 new ProgressBarColumn(),
                 new PercentageColumn(),
-                new SpinnerColumn(),
-            });
+                new SpinnerColumn()
+            ]);
 
         progress.Start(ctx =>
         {
@@ -145,21 +144,21 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
             var cleanTask = ctx.AddTask("Clean up old files", maxValue: prefixes.Count);
 
-                foreach (var prefix in prefixes)
-                {
-                    var path = Path.Combine(settings.Destination!, prefix);
+            foreach (var path in prefixes.Select(prefix => Path.Combine(settings.Destination!, prefix)))
+            {
+                if (Directory.Exists(path))
+                    Directory.Delete(path, true);
 
-                    if (Directory.Exists(path))
-                        Directory.Delete(path, true);
-
-                    cleanTask.Increment(1);
-                }
+                cleanTask.Increment(1);
+            }
 
             var pboTasks = pbos.Select(pbo => (pbo, task: tasks.First(x => x.Description == pbo.FileName)));
 
+            var parallelism = settings.DegreeOfParallelism > 1 ? settings.DegreeOfParallelism : pbos.Count;
+
             pboTasks
                 .AsParallel()
-                .WithDegreeOfParallelism(settings.DegreeOfParallelism)
+                .WithDegreeOfParallelism(parallelism)
                 .ForAll(pboTask =>
                 {
                     var (pbo, task) = pboTask;
@@ -177,11 +176,9 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         AnsiConsole.MarkupLine($"Extracted [yellow]{settings.InstallationPath}[/] to [yellow]{settings.Destination}[/]");
         AnsiConsole.MarkupLine($"Took [yellow]{stopWatch.Elapsed.Humanize(time)}[/] to complete the operation");
 
-        if (!settings.Unattended)
-        {
-            AnsiConsole.Write("\nPress enter to exit...");
-            while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
-        }
+        if (settings.Unattended) return 0;
+        AnsiConsole.Write("\nPress enter to exit...");
+        while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
 
         return 0;
     }
@@ -194,22 +191,20 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                 .ValidationErrorMessage("[red]Not a valid path[/]")
                 .Validate(path => Directory.Exists(path)));
 
-        if (_promptExperimental && !settings.Experimental && GamePath.Experimental != null)
-        {
-            settings.Experimental = AnsiConsole.Confirm("Extract experimental", settings.Experimental);
-            if (settings.Experimental) settings.InstallationPath = GamePath.Experimental;
-        }
+        if (!_promptExperimental || settings.Experimental || GamePath.Experimental == null) return;
+        settings.Experimental = AnsiConsole.Confirm("Extract experimental", settings.Experimental);
+        if (settings.Experimental) settings.InstallationPath = GamePath.Experimental;
     }
 
-    private static IEnumerable<PBO> GetPBOs(string path, Settings settings)
+    private static IEnumerable<PBO> GetPBOs(string path)
     {
         if (!Directory.Exists(path))
             yield break;
 
         var pbos = Directory.GetFiles(path, "*.pbo", SearchOption.TopDirectoryOnly);
 
-        for (int i = 0; i < pbos.Length; i++)
-            yield return new PBO(pbos[i]);
+        foreach (var t in pbos)
+            yield return new PBO(t);
     }
 
     private static void ExtractFiles(PBO pbo, ProgressTask task, Settings settings)
@@ -220,8 +215,8 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         if (!task.IsStarted)
             task.StartTask();
 
-        bool exclude = settings.ExcludePatterns != null;
-        string[]? exts = settings.ExcludePatterns ?? settings.IncludePatterns;
+        var exclude = settings.ExcludePatterns != null;
+        var exts = settings.ExcludePatterns ?? settings.IncludePatterns;
 
         foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
         {
@@ -238,16 +233,19 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
     private static bool ShouldExclude(string fileName, string[]? exts, bool exclude)
     {
         if (exts == null)
+        {
             return false;
+        }
 
         fileName = fileName.Replace("config.bin", "config.cpp");
 
-        if (exclude && exts.Contains(fileName, new ExtensionEqualityComparer()))
-            return true;
-
-        if (!exclude && !exts.Contains(fileName, new ExtensionEqualityComparer()))
-            return true;
-
-        return false;
+        switch (exclude)
+        {
+            case true when exts.Contains(fileName, new ExtensionEqualityComparer()):
+            case false when !exts.Contains(fileName, new ExtensionEqualityComparer()):
+                return true;
+            default:
+                return false;
+        }
     }
 }
