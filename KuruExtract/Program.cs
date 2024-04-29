@@ -4,15 +4,15 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace KuruExtract;
-
 public class Program
 {
     internal static UpdateChecker UpdateChecker { get; private set; } = null!;
 
     public static int Main(string[] args)
     {
-        Console.Title = "DayZExtract";
+        AppDomain.CurrentDomain.ProcessExit += ProcessExitHandler;
 
+        Console.Title = "DayZExtract";
         Thread.Sleep(50); // header will get jank on windows terminal
         AnsiConsole.Write(Constants.Header);
 
@@ -24,30 +24,46 @@ public class Program
 #if DEBUG
             config.ValidateExamples();
 #endif
-            config.AddExample(new[] { @"P:\" });
-            config.AddExample(new[] { @"P:\", "--experimental", "-u", "-i", "*.c" });
-            config.AddExample(new[] { @"P:\", "-u", "-e", "*.p3d,*.ogg,*.aw" });
+            config.AddExample(@"P:\");
+            config.AddExample(@"P:\", "--experimental", "-u", "-i", "*.c");
+            config.AddExample(@"P:\", "-u", "-e", "*.p3d,*.ogg,*.aw");
 
             config.SetApplicationName("DayZExtract.exe");
 
-            config.SetExceptionHandler(ex =>
-            {
-                if (ex is CommandRuntimeException)
-                    AnsiConsole.MarkupLine($"[red]{ex.Message}[/]");
-                else
-                    AnsiConsole.WriteException(ex, ExceptionFormats.ShortenEverything);
-            });
-
+            config.PropagateExceptions();
         });
 
-        var result = app.Run(args.Length < 1 ? new[] { "-h" } : args);
-
-        if (args.Length < 1)
+        try
         {
+#if DEBUG
+            var result = app.Run(args.Length < 1 ? ["P:\\", "-i", "*.cpp", "-u"] : args);
+#else
+            var result = app.Run(args.Length < 1 ? ["-h"] : args);
+#endif
+
+            if (args.Length >= 1) return result;
             AnsiConsole.Write("\nPress enter to exit...");
-            while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
+            while (Console.ReadKey(true).Key != ConsoleKey.Enter)
+            {
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            if (ex is CommandRuntimeException)
+                AnsiConsole.MarkupLine($"[red]{ex.Message}[/]");
+            else
+                AnsiConsole.WriteException(ex, ExceptionFormats.ShortenEverything);
+
+            Thread.Sleep(5000);
         }
 
-        return result;
+        return 0;
+    }
+
+    private static void ProcessExitHandler(object? sender, EventArgs e)
+    {
+        Console.CursorVisible = true;
     }
 }

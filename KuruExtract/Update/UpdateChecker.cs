@@ -3,18 +3,17 @@ using Newtonsoft.Json;
 using System.Net.Http.Headers;
 
 namespace KuruExtract.Update;
-
 internal sealed class UpdateChecker
 {
-    public string Owner { get; private set; }
+    public string Owner { get; }
 
-    public string Repo { get; private set; }
+    public string Repo { get; }
 
     public string DownloadUrl { get; private set; }
 
-    private const string APIURL = "https://api.github.com";
+    private const string ApiUrl = "https://api.github.com";
 
-    private string LatestReleaseUrl => $"{APIURL}/repos/{Owner}/{Repo}/releases/latest";
+    private string LatestReleaseUrl => $"{ApiUrl}/repos/{Owner}/{Repo}/releases/latest";
 
     private string ReleasesUrl => $"https://github.com/{Owner}/{Repo}/releases";
 
@@ -35,7 +34,7 @@ internal sealed class UpdateChecker
 
             var update = JsonConvert.DeserializeObject<GitHubResponse>(response);
 
-            if (update == null || update.TagName == null) return false;
+            if (update == null) return false;
 
             if (CompareVersion(Version.Parse(Constants.Version), Version.Parse(update.TagName[1..])) >= 0)
                 return false;
@@ -52,8 +51,8 @@ internal sealed class UpdateChecker
         var client = new HttpClient();
         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue($"DayZExtract", Constants.Version));
 
-        using HttpResponseMessage response = client.GetAsync(url).GetAwaiter().GetResult();
-        using HttpContent content = response.Content;
+        using var response = client.GetAsync(url).GetAwaiter().GetResult();
+        using var content = response.Content;
 
         return content.ReadAsStringAsync().GetAwaiter().GetResult();
     }
