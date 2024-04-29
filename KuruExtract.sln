@@ -5,20 +5,37 @@ VisualStudioVersion = 17.4.32804.182
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KuruExtract", "KuruExtract\KuruExtract.csproj", "{287EE689-EC92-4452-83DF-7330A20A23B9}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "KuruExtract.Setup", "KuruExtract.Setup\KuruExtract.Setup.vdproj", "{4C7EC73D-4359-4BF9-A65D-17A00C520CCE}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		All|ARM64 = All|ARM64
+		All|x64 = All|x64
+		All|x86 = All|x86
+		Debug|ARM64 = Debug|ARM64
 		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM64 = Release|ARM64
 		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.All|ARM64.ActiveCfg = Release|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.All|ARM64.Build.0 = Release|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.All|x64.ActiveCfg = Release|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.All|x64.Build.0 = Release|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.All|x86.ActiveCfg = Release|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.All|x86.Build.0 = Release|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.Debug|ARM64.ActiveCfg = Debug|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.Debug|ARM64.Build.0 = Debug|x64
 		{287EE689-EC92-4452-83DF-7330A20A23B9}.Debug|x64.ActiveCfg = Debug|x64
 		{287EE689-EC92-4452-83DF-7330A20A23B9}.Debug|x64.Build.0 = Debug|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.Debug|x86.ActiveCfg = Debug|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.Debug|x86.Build.0 = Debug|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.Release|ARM64.ActiveCfg = Release|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.Release|ARM64.Build.0 = Release|x64
 		{287EE689-EC92-4452-83DF-7330A20A23B9}.Release|x64.ActiveCfg = Release|x64
 		{287EE689-EC92-4452-83DF-7330A20A23B9}.Release|x64.Build.0 = Release|x64
-		{4C7EC73D-4359-4BF9-A65D-17A00C520CCE}.Debug|x64.ActiveCfg = Release
-		{4C7EC73D-4359-4BF9-A65D-17A00C520CCE}.Release|x64.ActiveCfg = Release
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.Release|x86.ActiveCfg = Release|x64
+		{287EE689-EC92-4452-83DF-7330A20A23B9}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
