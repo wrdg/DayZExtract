@@ -20,8 +20,9 @@
 		<AssemblyName>DayZExtract</AssemblyName>
 		<Company>Wardog</Company>
 		<Description>Extracts game content for DayZ</Description>
-		<FileVersion>1.0.6</FileVersion>
-		<InformationalVersion>1.0.6</InformationalVersion>
+		<FileVersion>1.0.7</FileVersion>
+		<InformationalVersion>1.0.7</InformationalVersion>
+		<Version>1.0.7</Version>
 		<ApplicationIcon>gear.ico</ApplicationIcon>
 	</PropertyGroup>
 
