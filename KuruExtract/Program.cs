@@ -12,8 +12,10 @@ public class Program
     {
         AppDomain.CurrentDomain.ProcessExit += ProcessExitHandler;
 
+#if WINDOWS
         Console.Title = "DayZExtract";
         Thread.Sleep(50); // header will get jank on windows terminal
+#endif
         AnsiConsole.Write(Constants.Header);
 
         UpdateChecker = new UpdateChecker("wrdg", "DayZExtract");
