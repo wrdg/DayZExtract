@@ -15,6 +15,6 @@ internal sealed class ExtensionEqualityComparer : IEqualityComparer<string>
 
     public int GetHashCode([DisallowNull] string obj)
     {
-        return obj != null ? obj.GetHashCode() : 0;
+        return obj.GetHashCode();
     }
 }
