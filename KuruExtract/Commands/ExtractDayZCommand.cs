@@ -78,8 +78,10 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                 : ValidationResult.Success();
         _promptExperimental = true;
 
+#if WINDOWS
         SteamLibrary.FetchGames();
         settings.InstallationPath = settings.Experimental ? GamePath.Experimental : GamePath.Stable;
+#endif
 
         return settings.InstallationPath == null ? ValidationResult.Error("Unable to locate game installation path.") : ValidationResult.Success();
     }
@@ -186,10 +188,10 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
     private static void PromptAttendant(Settings settings)
     {
         settings.Destination = AnsiConsole.Prompt(
-            new TextPrompt<string>("Desination path")
+            new TextPrompt<string>("Destination path")
                 .DefaultValue(settings.Destination ?? @"P:\")
                 .ValidationErrorMessage("[red]Not a valid path[/]")
-                .Validate(path => Directory.Exists(path)));
+                .Validate(Directory.Exists));
 
         if (!_promptExperimental || settings.Experimental || GamePath.Experimental == null) return;
         settings.Experimental = AnsiConsole.Confirm("Extract experimental", settings.Experimental);
