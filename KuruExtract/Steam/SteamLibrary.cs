@@ -18,14 +18,14 @@ public class SteamLibrary
         }
     }
 
-    public static Dictionary<int, SteamGame> Games { get; } = new();
+    public static Dictionary<int, SteamGame> Games { get; } = [];
 
     public static void FetchGames()
     {
         var gameLibraryDirectories = GetLibraryDirectories();
         foreach (var game in gameLibraryDirectories.Select(GetGamesFromLibrary).SelectMany(games => games))
         {
-            Games.Add(game.AppId, game);
+            Games[game.AppId] = game;
         }
     }
 
