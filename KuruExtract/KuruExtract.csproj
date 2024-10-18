@@ -20,9 +20,9 @@
 		<AssemblyName>DayZExtract</AssemblyName>
 		<Company>Wardog</Company>
 		<Description>Extracts game content for DayZ</Description>
-		<FileVersion>1.0.7</FileVersion>
-		<InformationalVersion>1.0.7</InformationalVersion>
-		<Version>1.0.7</Version>
+		<FileVersion>1.0.8</FileVersion>
+		<InformationalVersion>1.0.8</InformationalVersion>
+		<Version>1.0.8</Version>
 		<ApplicationIcon>gear.ico</ApplicationIcon>
 	</PropertyGroup>
 
@@ -35,7 +35,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="DotnetRuntimeBootstrapper" Version="2.5.3">
+		<PackageReference Include="DotnetRuntimeBootstrapper" Version="2.5.4">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
