@@ -115,6 +115,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         var pbos = GetPBOs(Path.Combine(settings.InstallationPath!, "dta")).ToList();
         pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, "addons")));
         pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, @"bliss\addons")));
+        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, @"sakhal\addons")));
 
         var progress = AnsiConsole.Progress()
             .HideCompleted(true)
