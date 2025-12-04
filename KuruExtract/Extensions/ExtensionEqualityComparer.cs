@@ -7,8 +7,8 @@ internal sealed class ExtensionEqualityComparer : IEqualityComparer<string>
     public bool Equals(string? x, string? y)
     {
         if (ReferenceEquals(x, y)) return true;
-        if (ReferenceEquals(x, null)) return false;
-        if (ReferenceEquals(y, null)) return false;
+        if (x is null) return false;
+        if (y is null) return false;
 
         return x.EndsWith(y, StringComparison.OrdinalIgnoreCase) || y.EndsWith(x, StringComparison.OrdinalIgnoreCase);
     }
