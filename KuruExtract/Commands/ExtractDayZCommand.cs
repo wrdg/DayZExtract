@@ -86,7 +86,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         return settings.InstallationPath == null ? ValidationResult.Error("Unable to locate game installation path.") : ValidationResult.Success();
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
+    public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings, CancellationToken cancellationToken)
     {
         if (!settings.Unattended)
         {
