@@ -1,4 +1,4 @@
-﻿using Humanizer;
+using Humanizer;
 using KuruExtract.RV;
 using KuruExtract.RV.PBO;
 using KuruExtract.Steam;
@@ -43,7 +43,9 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         public int DegreeOfParallelism { get; set; } = 0;
     }
 
-    private static bool _promptExperimental;
+    private static readonly ExtensionEqualityComparer ExtComparer = new();
+
+    private bool _promptExperimental;
 
     public override ValidationResult Validate([NotNull] CommandContext context, [NotNull] Settings settings)
     {
@@ -73,9 +75,8 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
             return ValidationResult.Error("You may only specify include or exclude, not both.");
 
         if (!string.IsNullOrEmpty(settings.InstallationPath))
-            return settings.InstallationPath == null
-                ? ValidationResult.Error("Unable to locate game installation path.")
-                : ValidationResult.Success();
+            return ValidationResult.Success();
+
         _promptExperimental = true;
 
 #if WINDOWS
@@ -125,7 +126,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
         progress.Start(ctx =>
         {
-            var tasks = new List<ProgressTask>();
+            var tasksByFileName = new Dictionary<string, ProgressTask>(pbos.Count);
             var prefixes = new HashSet<string>();
 
             // setup tasks in reverse order
@@ -139,7 +140,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                 var task = ctx.AddTask(pbo.FileName!, false, pbo.Files.Count)
                     .IsIndeterminate();
 
-                tasks.Add(task);
+                tasksByFileName[pbo.FileName!] = task;
             }
 
             var cleanTask = ctx.AddTask("Clean up old files", maxValue: prefixes.Count);
@@ -152,17 +153,14 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
                 cleanTask.Increment(1);
             }
 
-            var pboTasks = pbos.Select(pbo => (pbo, task: tasks.First(x => x.Description == pbo.FileName)));
-
             var parallelism = settings.DegreeOfParallelism > 1 ? settings.DegreeOfParallelism : pbos.Count;
 
-            pboTasks
+            pbos
                 .AsParallel()
                 .WithDegreeOfParallelism(parallelism)
-                .ForAll(pboTask =>
+                .ForAll(pbo =>
                 {
-                    var (pbo, task) = pboTask;
-                    ExtractFiles(pbo, task, settings);
+                    ExtractFiles(pbo, tasksByFileName[pbo.FileName!], settings);
                     pbo.Dispose();
                 });
         });
@@ -183,7 +181,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         return 0;
     }
 
-    private static void PromptAttendant(Settings settings)
+    private void PromptAttendant(Settings settings)
     {
         settings.Destination = AnsiConsole.Prompt(
             new TextPrompt<string>("Destination path")
@@ -216,7 +214,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
             foreach (var subDir in Directory.EnumerateDirectories(dir))
             {
-                if (!new DirectoryInfo(subDir).Attributes.HasFlag(FileAttributes.ReparsePoint))
+                if (!File.GetAttributes(subDir).HasFlag(FileAttributes.ReparsePoint))
                     dirs.Push(subDir);
             }
         }
@@ -232,14 +230,12 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
 
         var exclude = settings.ExcludePatterns != null;
         var exts = settings.ExcludePatterns ?? settings.IncludePatterns;
+        var extractPath = Path.Combine(settings.Destination!, pbo.Prefix ?? string.Empty);
 
         foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
         {
             if (!ShouldExclude(file.FileName, exts, exclude))
-            {
-                var path = Path.Combine(settings.Destination!, pbo.Prefix ?? string.Empty);
-                PBO.ExtractFile(file, path);
-            }
+                PBO.ExtractFile(file, extractPath);
 
             task.Increment(1);
         }
@@ -248,19 +244,13 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
     private static bool ShouldExclude(string fileName, string[]? exts, bool exclude)
     {
         if (exts == null)
-        {
             return false;
-        }
 
-        fileName = fileName.Replace("config.bin", "config.cpp");
+        if (fileName.Contains("config.bin", StringComparison.Ordinal))
+            fileName = fileName.Replace("config.bin", "config.cpp");
 
-        switch (exclude)
-        {
-            case true when exts.Contains(fileName, new ExtensionEqualityComparer()):
-            case false when !exts.Contains(fileName, new ExtensionEqualityComparer()):
-                return true;
-            default:
-                return false;
-        }
+        return exclude
+            ? exts.Contains(fileName, ExtComparer)
+            : !exts.Contains(fileName, ExtComparer);
     }
 }
