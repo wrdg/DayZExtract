@@ -1,4 +1,6 @@
 ﻿using KuruExtract.RV.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace KuruExtract.RV.Config;
 internal sealed class RawArray
@@ -18,7 +20,15 @@ internal sealed class RawArray
 
     public override string ToString()
     {
-        var valStr = string.Join(", ", Entries.Select(x => x.ToString()));
-        return $"{{{valStr}}}";
+        var entries = CollectionsMarshal.AsSpan(Entries);
+        if (entries.IsEmpty)
+            return "{}";
+
+        var sb = new StringBuilder("{");
+        sb.Append(entries[0]);
+        for (int i = 1; i < entries.Length; i++)
+            sb.Append(", ").Append(entries[i]);
+        sb.Append('}');
+        return sb.ToString();
     }
 }

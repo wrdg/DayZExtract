@@ -52,11 +52,14 @@ internal sealed class RawValue
     {
         return Type switch
         {
-            ValueType.Expression or ValueType.String => $"\"{((string)Value).Replace("\"", "\"\"")}\"",
+            ValueType.Expression or ValueType.String => FormatString((string)Value),
             ValueType.Float => ((float)Value).ToString(CultureInfo.InvariantCulture),
             _ => Value.ToString()
         };
     }
+
+    private static string FormatString(string s) =>
+        s.Contains('"') ? $"\"{s.Replace("\"", "\"\"")}\"" : $"\"{s}\"";
 
     internal T Get<T>()
     {
