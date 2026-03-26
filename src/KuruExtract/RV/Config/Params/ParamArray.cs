@@ -21,11 +21,21 @@ internal sealed class ParamArray : ParamEntry
 
     public T[] ToArray<T>()
     {
-        return Array.Entries.Select(e => e.Get<T>()).ToArray();
+        return [.. Array.Entries.Select(e => e.Get<T>())];
     }
 
     public override string ToString(int indentionLevel)
     {
-        return $"{new string(' ', indentionLevel * 4)}{Name}[]={Array};";
+        var ind = new string(' ', indentionLevel * 4);
+        var entries = Array.Entries;
+
+        bool allNumeric = entries.Count == 0 || entries.All(e => e.Type is ValueType.Int or ValueType.Float or ValueType.Int64);
+
+        if (allNumeric)
+            return $"{ind}{Name}[] = {Array};";
+
+        var innerInd = new string(' ', (indentionLevel + 1) * 4);
+        var items = string.Join(",\n", entries.Select(e => $"{innerInd}{e}"));
+        return $"{ind}{Name}[] =\n{ind}{{\n{items}\n{ind}}};";
     }
 }
