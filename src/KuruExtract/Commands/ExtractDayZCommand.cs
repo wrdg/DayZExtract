@@ -112,10 +112,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
-        var pbos = GetPBOs(Path.Combine(settings.InstallationPath!, "dta")).ToList();
-        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, "addons")));
-        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, @"bliss\addons")));
-        pbos.AddRange(GetPBOs(Path.Combine(settings.InstallationPath!, @"sakhal\addons")));
+        var pbos = GetPBOs(settings.InstallationPath!).ToList();
 
         var progress = AnsiConsole.Progress()
             .HideCompleted(true)
@@ -199,15 +196,30 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
         if (settings.Experimental) settings.InstallationPath = GamePath.Experimental;
     }
 
-    private static IEnumerable<PBO> GetPBOs(string path)
+    private static IEnumerable<PBO> GetPBOs(string root)
     {
-        if (!Directory.Exists(path))
+        if (!Directory.Exists(root))
             yield break;
 
-        var pbos = Directory.GetFiles(path, "*.pbo", SearchOption.TopDirectoryOnly);
+        var dirs = new Stack<string>();
+        dirs.Push(root);
 
-        foreach (var t in pbos)
-            yield return new PBO(t);
+        while (dirs.Count > 0)
+        {
+            var dir = dirs.Pop();
+
+            foreach (var pboPath in Directory.EnumerateFiles(dir, "*.pbo", SearchOption.TopDirectoryOnly))
+            {
+                if (File.Exists(pboPath + ".dayz.bisign"))
+                    yield return new PBO(pboPath);
+            }
+
+            foreach (var subDir in Directory.EnumerateDirectories(dir))
+            {
+                if (!new DirectoryInfo(subDir).Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    dirs.Push(subDir);
+            }
+        }
     }
 
     private static void ExtractFiles(PBO pbo, ProgressTask task, Settings settings)
@@ -226,7 +238,7 @@ internal sealed class ExtractDayZCommand : Command<ExtractDayZCommand.Settings>
             if (!ShouldExclude(file.FileName, exts, exclude))
             {
                 var path = Path.Combine(settings.Destination!, pbo.Prefix ?? string.Empty);
-                file.Extract(path);
+                PBO.ExtractFile(file, path);
             }
 
             task.Increment(1);
