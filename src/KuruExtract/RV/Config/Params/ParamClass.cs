@@ -1,4 +1,5 @@
 ﻿using KuruExtract.RV.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace KuruExtract.RV.Config;
@@ -54,14 +55,15 @@ internal sealed class ParamClass : ParamEntry
 
     public string ToString(int indentionLevel, bool onlyClassBody)
     {
-        var ind = new string(' ', indentionLevel * 4);
+        var ind = Indent(indentionLevel);
         var classBody = new StringBuilder();
 
-        var indLvl = (onlyClassBody) ? indentionLevel : indentionLevel + 1;
-        foreach (var entry in Entries)
-            classBody.AppendLine(entry.ToString(indLvl));
+        var indLvl = onlyClassBody ? indentionLevel : indentionLevel + 1;
+        var entriesSpan = CollectionsMarshal.AsSpan(Entries);
+        for (int i = 0; i < entriesSpan.Length; i++)
+            classBody.AppendLine(entriesSpan[i].ToString(indLvl));
 
-        var classHead = string.IsNullOrEmpty(BaseClassName) ?
+        var classHead = BaseClassName.Length == 0 ?
             $"{ind}class {Name}" :
             $"{ind}class {Name} : {BaseClassName}";
 

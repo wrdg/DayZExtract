@@ -15,6 +15,6 @@ internal sealed class ParamExternClass : ParamEntry
 
     public override string ToString(int indentionLevel)
     {
-        return $"{new string(' ', indentionLevel * 4)}class {Name};";
+        return $"{Indent(indentionLevel)}class {Name};";
     }
 }

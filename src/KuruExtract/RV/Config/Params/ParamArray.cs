@@ -1,4 +1,6 @@
 ﻿using KuruExtract.RV.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace KuruExtract.RV.Config;
 internal sealed class ParamArray : ParamEntry
@@ -26,16 +28,32 @@ internal sealed class ParamArray : ParamEntry
 
     public override string ToString(int indentionLevel)
     {
-        var ind = new string(' ', indentionLevel * 4);
-        var entries = Array.Entries;
+        var ind = Indent(indentionLevel);
+        var entries = CollectionsMarshal.AsSpan(Array.Entries);
 
-        bool allNumeric = entries.Count == 0 || entries.All(e => e.Type is ValueType.Int or ValueType.Float or ValueType.Int64);
+        bool allNumeric = true;
+        for (int i = 0; i < entries.Length; i++)
+        {
+            if (entries[i].Type is not (ValueType.Int or ValueType.Float or ValueType.Int64))
+            {
+                allNumeric = false;
+                break;
+            }
+        }
 
         if (allNumeric)
             return $"{ind}{Name}[] = {Array};";
 
-        var innerInd = new string(' ', (indentionLevel + 1) * 4);
-        var items = string.Join(",\n", entries.Select(e => $"{innerInd}{e}"));
-        return $"{ind}{Name}[] =\n{ind}{{\n{items}\n{ind}}};";
+        var innerInd = Indent(indentionLevel + 1);
+        var sb = new StringBuilder(ind).Append(Name).AppendLine("[] =");
+        sb.Append(ind).AppendLine("{");
+        for (int i = 0; i < entries.Length; i++)
+        {
+            sb.Append(innerInd).Append(entries[i]);
+            if (i < entries.Length - 1) sb.Append(',');
+            sb.AppendLine();
+        }
+        sb.Append(ind).Append("};");
+        return sb.ToString();
     }
 }

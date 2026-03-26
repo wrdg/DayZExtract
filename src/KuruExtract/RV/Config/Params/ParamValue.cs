@@ -35,6 +35,6 @@ internal sealed class ParamValue : ParamEntry
 
     public override string ToString(int indentionLevel)
     {
-        return $"{new string(' ', indentionLevel * 4)}{Name} = {Value};";
+        return $"{Indent(indentionLevel)}{Name} = {Value};";
     }
 }

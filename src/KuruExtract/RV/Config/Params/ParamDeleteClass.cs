@@ -15,6 +15,6 @@ internal sealed class ParamDeleteClass : ParamEntry
 
     public override string ToString(int indentionLevel)
     {
-        return $"{new string(' ', indentionLevel * 4)}delete {Name};";
+        return $"{Indent(indentionLevel)}delete {Name};";
     }
 }
