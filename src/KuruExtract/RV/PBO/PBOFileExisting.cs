@@ -1,6 +1,6 @@
 ﻿namespace KuruExtract.RV.PBO;
 
-internal class PBOFileExisting : IPBOFileEntry
+internal sealed class PBOFileExisting : IPBOFileEntry
 {
     private readonly FileEntry _fileEntry;
     private readonly PBO _pbo;
@@ -23,8 +23,7 @@ internal class PBOFileExisting : IPBOFileEntry
 
     public string PboFile => _pbo.PBOFilePath;
 
-    public Stream OpenRead()
-    {
-        return _pbo.GetFileEntryStream(_fileEntry);
-    }
+    public Stream OpenRead() => _pbo.GetFileEntryStream(_fileEntry);
+
+    public void CopyTo(Stream destination) => _pbo.CopyFileTo(_fileEntry, destination);
 }

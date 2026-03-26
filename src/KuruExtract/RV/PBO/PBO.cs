@@ -1,12 +1,15 @@
-﻿
+
+using System.Buffers;
+using KuruExtract.RV.Compression;
 using KuruExtract.RV.Config;
 using KuruExtract.RV.IO;
 
 namespace KuruExtract.RV.PBO;
 
-internal class PBO : IDisposable
+internal sealed class PBO : IDisposable
 {
     private FileStream? _pboFileStream;
+    private RVBinaryReader? _reader;
 
     public string PBOFilePath { get; private set; }
 
@@ -14,7 +17,11 @@ internal class PBO : IDisposable
     {
         get
         {
-            _pboFileStream ??= File.OpenRead(PBOFilePath);
+            if (_pboFileStream == null)
+            {
+                _pboFileStream = File.OpenRead(PBOFilePath);
+                _reader = new RVBinaryReader(_pboFileStream);
+            }
             return _pboFileStream;
         }
     }
@@ -32,8 +39,9 @@ internal class PBO : IDisposable
         ReadHeader(input);
         if (!keepStreamOpen)
         {
-            _pboFileStream?.Close();
+            _pboFileStream?.Dispose();
             _pboFileStream = null;
+            _reader = null;
         }
     }
 
@@ -83,55 +91,100 @@ internal class PBO : IDisposable
         byte[] bytes;
         lock (this)
         {
-            PBOFileStream.Position = DataOffset + entry.StartOffset;
+            _ = PBOFileStream;
+            _reader!.Position = DataOffset + entry.StartOffset;
+
             if (entry.CompressedMagic == 0)
             {
                 bytes = new byte[entry.DataSize];
-                PBOFileStream.ReadExactly(bytes, 0, entry.DataSize);
+                _pboFileStream!.ReadExactly(bytes, 0, entry.DataSize);
             }
             else
             {
                 if (!entry.IsCompressed)
                     throw new Exception("Unexpected packingMethod");
 
-                var br = new RVBinaryReader(PBOFileStream);
-                bytes = br.ReadLZSS((uint)entry.UncompressedSize);
+                bytes = _reader.ReadLZSS((uint)entry.UncompressedSize);
             }
         }
 
         return bytes;
     }
 
+    // Streams the file data directly to `destination` using a pooled buffer,
+    // avoiding a full-file heap allocation for each entry.
+    internal void CopyFileTo(FileEntry entry, Stream destination)
+    {
+        lock (this)
+        {
+            _ = PBOFileStream;
+            _reader!.Position = DataOffset + entry.StartOffset;
+
+            if (entry.CompressedMagic == 0)
+            {
+                var buf = ArrayPool<byte>.Shared.Rent(81920);
+                try
+                {
+                    int remaining = entry.DataSize;
+                    while (remaining > 0)
+                    {
+                        int toRead = Math.Min(remaining, buf.Length);
+                        _pboFileStream!.ReadExactly(buf, 0, toRead);
+                        destination.Write(buf, 0, toRead);
+                        remaining -= toRead;
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buf);
+                }
+            }
+            else
+            {
+                if (!entry.IsCompressed)
+                    throw new Exception("Unexpected packingMethod");
+
+                int size = entry.UncompressedSize;
+                var buf = ArrayPool<byte>.Shared.Rent(size);
+                try
+                {
+                    LZSS.ReadLZSS(_pboFileStream!, buf.AsSpan(0, size), false);
+                    destination.Write(buf, 0, size);
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buf);
+                }
+            }
+        }
+    }
+
     public static void ExtractFile(IPBOFileEntry entry, string target)
     {
-        bool isConfigBin = false;
         string fileName = entry.FileName;
-        if (fileName.EndsWith("config.bin"))
-        {
-            fileName = fileName.Replace(".bin", ".cpp");
-            isConfigBin = true;
-        }
+        bool isConfigBin = fileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase);
+        if (isConfigBin)
+            fileName = Path.ChangeExtension(fileName, ".cpp");
 
         var path = Path.Combine(target, fileName);
         var parentDir = Path.GetDirectoryName(path);
         if (string.IsNullOrEmpty(parentDir))
-        {
             return;
-        }
 
         Directory.CreateDirectory(parentDir);
+
         using var targetFile = File.Create(path);
-        using var writer = new StreamWriter(targetFile);
-        using var source = entry.OpenRead();
 
         if (isConfigBin)
         {
+            using var source = entry.OpenRead();
             var param = new ParamFile(source);
+            using var writer = new StreamWriter(targetFile);
             writer.Write(param.ToString());
             return;
         }
 
-        source.CopyTo(targetFile);
+        entry.CopyTo(targetFile);
     }
 
     public static void ExtractFiles(IEnumerable<IPBOFileEntry> entries, string target)
@@ -157,23 +210,23 @@ internal class PBO : IDisposable
         foreach (var entry in entries)
         {
             if (entry.DataSize <= 0)
-            {
                 continue;
-            }
 
             yield return new MemoryStream(GetFileData(entry), false);
         }
 
         if (!keepStreamOpen)
         {
-            _pboFileStream?.Close();
+            _pboFileStream?.Dispose();
             _pboFileStream = null;
+            _reader = null;
         }
     }
 
     public void Dispose()
     {
-        _pboFileStream?.Close();
+        _pboFileStream?.Dispose();
         _pboFileStream = null;
+        _reader = null;
     }
 }

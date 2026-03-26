@@ -1,4 +1,5 @@
-﻿using KuruExtract.RV.Compression;
+﻿using Buffers = System.Buffers;
+using KuruExtract.RV.Compression;
 using System.Text;
 
 namespace KuruExtract.RV.IO;
@@ -33,7 +34,8 @@ public class RVBinaryReader : BinaryReader
         if (expectedSize < 1024)
             return ReadBytes((int)expectedSize);
 
-        LZSS.ReadLZSS(BaseStream, out var buffer, expectedSize, false);
+        var buffer = new byte[expectedSize];
+        LZSS.ReadLZSS(BaseStream, buffer, false);
         return buffer;
     }
 

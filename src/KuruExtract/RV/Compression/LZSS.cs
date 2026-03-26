@@ -1,24 +1,22 @@
-﻿namespace KuruExtract.RV.Compression;
+namespace KuruExtract.RV.Compression;
 
 internal static class LZSS
 {
-    public static uint ReadLZSS(Stream input, out byte[] dst, uint expectedSize, bool useSignedChecksum)
+    public static void ReadLZSS(Stream input, Span<byte> dst, bool useSignedChecksum)
     {
         const int N = 4096;
         const int F = 18;
         const int THRESHOLD = 2;
-        char[] text_buf = new char[N + F - 1];
-        dst = new byte[expectedSize];
 
-        if (expectedSize <= 0) return 0;
+        Span<char> text_buf = stackalloc char[N + F - 1];
+        text_buf.Fill(' ');
 
-        var startPos = input.Position;
-        var bytesLeft = expectedSize;
+        var bytesLeft = (uint)dst.Length;
+        if (bytesLeft == 0) return;
+
         int iDst = 0;
-
         int i, j, r, c, csum = 0;
         int flags;
-        for (i = 0; i < N - F; i++) text_buf[i] = ' ';
         r = N - F; flags = 0;
         while (bytesLeft > 0)
         {
@@ -74,15 +72,13 @@ internal static class LZSS
             }
         }
 
-        var csData = new byte[4];
-        input.ReadExactly(csData, 0, 4);
-        int csr = BitConverter.ToInt32(csData, 0);
+        Span<byte> csData = stackalloc byte[4];
+        input.ReadExactly(csData);
+        int csr = BitConverter.ToInt32(csData);
 
         if (csr != csum)
         {
             throw new ArgumentException("Checksum mismatch");
         }
-
-        return (uint)(input.Position - startPos);
     }
 }

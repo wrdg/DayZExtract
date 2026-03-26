@@ -1,4 +1,4 @@
-﻿using KuruExtract.RV.IO;
+using KuruExtract.RV.IO;
 using System.Text;
 
 namespace KuruExtract.RV.PBO;
@@ -20,14 +20,10 @@ internal sealed class FileEntry
     public static readonly int CompressionMagic = BitConverter.ToInt32(Encoding.ASCII.GetBytes("srpC"), 0); //Cprs
     public static readonly int EncryptionMagic = BitConverter.ToInt32(Encoding.ASCII.GetBytes("rcnE"), 0); //Encr
 
-    public FileEntry()
-    {
-    }
-
     public FileEntry(RVBinaryReader input)
         => Read(input);
 
-    public void Read(RVBinaryReader input)
+    private void Read(RVBinaryReader input)
     {
         FileName = input.ReadAsciiz();
         CompressedMagic = input.ReadInt32();
