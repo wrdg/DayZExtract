@@ -7,13 +7,13 @@ internal sealed class RawArray
 
     public RawArray(IEnumerable<RawValue> values)
     {
-        Entries = values.ToList();
+        Entries = [.. values];
     }
 
     public RawArray(RVBinaryReader input)
     {
         var nEntries = input.ReadCompactInteger();
-        Entries = Enumerable.Range(0, nEntries).Select(_ => new RawValue(input)).ToList();
+        Entries = [.. Enumerable.Range(0, nEntries).Select(_ => new RawValue(input))];
     }
 
     public override string ToString()

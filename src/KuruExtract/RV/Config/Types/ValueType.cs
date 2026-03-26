@@ -7,5 +7,5 @@ internal enum ValueType : byte
     Array,
     Expression,
     NSpecValueType,
-    Int64,
+    Int64
 }

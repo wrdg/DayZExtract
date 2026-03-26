@@ -75,7 +75,7 @@ internal static class LZSS
         }
 
         var csData = new byte[4];
-        input.Read(csData, 0, 4);
+        input.ReadExactly(csData, 0, 4);
         int csr = BitConverter.ToInt32(csData, 0);
 
         if (csr != csum)

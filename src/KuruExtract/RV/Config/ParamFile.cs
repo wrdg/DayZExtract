@@ -22,7 +22,8 @@ internal sealed class ParamFile
         var sig = new char[] { '\0', 'r', 'a', 'P' };
         if (!input.ReadBytes(4).SequenceEqual(sig.Select(c => (byte)c)))
         {
-            throw new ArgumentException();
+            input.BaseStream.Seek(-4, SeekOrigin.Current);
+            throw new FormatException();
         }
 
         var ofpVersion = input.ReadInt32();
@@ -33,7 +34,7 @@ internal sealed class ParamFile
 
         input.Position = offsetToEnums;
         var nEnumValues = input.ReadInt32();
-        EnumValues = Enumerable.Range(0, nEnumValues).Select(_ => new KeyValuePair<string, int>(input.ReadAsciiz(), input.ReadInt32())).ToList();
+        EnumValues = [.. Enumerable.Range(0, nEnumValues).Select(_ => new KeyValuePair<string, int>(input.ReadAsciiz(), input.ReadInt32()))];
     }
 
     public override string? ToString()

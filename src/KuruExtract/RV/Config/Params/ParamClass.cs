@@ -6,13 +6,13 @@ internal sealed class ParamClass : ParamEntry
 {
     public string BaseClassName { get; private set; } = string.Empty;
 
-    public List<ParamEntry> Entries { get; private set; } = new(20);
+    public List<ParamEntry> Entries { get; private set; } = new List<ParamEntry>(20);
 
     public ParamClass(string name, string baseclass, IEnumerable<ParamEntry> entries)
     {
         BaseClassName = baseclass;
         Name = name;
-        Entries = entries.ToList();
+        Entries = [.. entries];
     }
 
     public ParamClass(string name, IEnumerable<ParamEntry> entries) : this(name, "", entries) { }
@@ -49,7 +49,7 @@ internal sealed class ParamClass : ParamEntry
         BaseClassName = input.ReadAsciiz();
 
         var nEntries = input.ReadCompactInteger();
-        Entries = Enumerable.Range(0, nEntries).Select(_ => ReadParamEntry(input)).ToList();
+        Entries = [.. Enumerable.Range(0, nEntries).Select(_ => ReadParamEntry(input))];
     }
 
     public string ToString(int indentionLevel, bool onlyClassBody)
