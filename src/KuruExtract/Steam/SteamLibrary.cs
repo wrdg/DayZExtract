@@ -1,4 +1,3 @@
-﻿using Gameloop.Vdf.Linq;
 using KuruExtract.Extensions;
 using Microsoft.Win32;
 using System.Text;
@@ -33,43 +32,32 @@ public class SteamLibrary
     {
         List<SteamGame> games = [];
         if (!Directory.Exists(libraryDirectory))
-        {
             return games;
-        }
 
         var libraryAppPath = Path.Combine(libraryDirectory, "common");
         foreach (var file in Directory.EnumerateFiles(libraryDirectory, "*.acf"))
         {
-            if (!ValveDataFile.TryDeserialize(File.ReadAllText(file, Encoding.UTF8), out var result))
-            {
+            if (!VdfParser.TryParse(File.ReadAllText(file, Encoding.UTF8), out var doc))
                 continue;
-            }
 
-            if (result is null || !int.TryParse(result.Value.GetChild("appid")?.ToString(), out var appId))
-            {
+            // ACF files have a single top-level key ("AppState") wrapping all properties
+            var appState = doc!.Children.FirstOrDefault().Value;
+            if (appState is null)
                 continue;
-            }
 
-            var installDir = result.Value.GetChild("installdir")?.ToString();
-            var name = result.Value.GetChild("name")?.ToString();
+            if (!int.TryParse(appState["appid"]?.ToString(), out var appId))
+                continue;
+
+            var installDir = appState["installdir"]?.ToString();
+            var name = appState["name"]?.ToString();
             if (string.IsNullOrWhiteSpace(installDir) || string.IsNullOrWhiteSpace(name))
-            {
                 continue;
-            }
 
-            ;
             var gameDirectory = Path.Combine(libraryAppPath, installDir).ResolvePath();
             if (gameDirectory is null || games.Any(g => g.AppId == appId))
-            {
                 continue;
-            }
 
-            games.Add(new SteamGame
-            {
-                AppId = appId,
-                Name = name,
-                InstallPath = gameDirectory
-            });
+            games.Add(new SteamGame { AppId = appId, Name = name, InstallPath = gameDirectory });
         }
 
         return games;
@@ -81,44 +69,34 @@ public class SteamLibrary
 
         var steamInstallPath = InstallPath;
         if (steamInstallPath == null || !Directory.Exists(steamInstallPath))
-        {
             return libraryDirectories;
-        }
 
-        var libraryFolder = Path.Combine(steamInstallPath, "steamapps");
-        if (!Directory.Exists(libraryFolder))
-        {
+        var steamapps = Path.Combine(steamInstallPath, "steamapps");
+        if (!Directory.Exists(steamapps))
             return libraryDirectories;
-        }
 
-        _ = libraryDirectories.Add(libraryFolder);
-        var libraryFolders = Path.Combine(libraryFolder, "libraryfolders.vdf");
-        if (!File.Exists(libraryFolders) ||
-            !ValveDataFile.TryDeserialize(File.ReadAllText(libraryFolders, Encoding.UTF8), out var result))
-        {
+        libraryDirectories.Add(steamapps);
+
+        // Newer Steam stores libraryfolders.vdf under config/, older installs use steamapps/
+        var vdfPath = Path.Combine(steamInstallPath, "config", "libraryfolders.vdf");
+        if (!File.Exists(vdfPath))
+            vdfPath = Path.Combine(steamapps, "libraryfolders.vdf");
+
+        if (!File.Exists(vdfPath) || !VdfParser.TryParse(File.ReadAllText(vdfPath, Encoding.UTF8), out var doc))
             return libraryDirectories;
-        }
 
-        if (result is null)
-        {
+        var lf = doc!["libraryfolders"];
+        if (lf is null)
             return libraryDirectories;
-        }
 
-        foreach (var vToken in result.Value.Where(p =>
-                     p is VProperty property && int.TryParse(property.Key, out _)))
+        foreach (var (key, node) in lf.Children)
         {
-            var property = (VProperty)vToken;
-            var path = property.Value.GetChild("path")?.ToString();
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                continue;
-            }
-
+            if (!int.TryParse(key, out _)) continue;
+            var path = node["path"]?.ToString();
+            if (string.IsNullOrWhiteSpace(path)) continue;
             var libraryPath = Path.Combine(path, "steamapps");
-            if (Directory.Exists(path))
-            {
-                _ = libraryDirectories.Add(libraryPath);
-            }
+            if (Directory.Exists(libraryPath))
+                libraryDirectories.Add(libraryPath);
         }
 
         return libraryDirectories;
