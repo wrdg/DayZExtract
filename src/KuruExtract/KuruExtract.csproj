@@ -3,16 +3,19 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net10.0-windows</TargetFramework>
+        <LangVersion>preview</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Platforms>x64</Platforms>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 	</PropertyGroup>
 
-	<PropertyGroup>
-		<GenerateBootstrapperOnBuild>true</GenerateBootstrapperOnBuild>
-		<BootstrapperPromptRequired>false</BootstrapperPromptRequired>
-		<BootstrapperVariant>CLI</BootstrapperVariant>
-	</PropertyGroup>
+    <PropertyGroup>
+        <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+        <TrimmerSingleWarn>false</TrimmerSingleWarn>
+        <DebuggerSupport>false</DebuggerSupport>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    </PropertyGroup>
 
 	<PropertyGroup>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -23,7 +26,6 @@
 		<InformationalVersion>1.1.0</InformationalVersion>
 		<Version>1.1.0</Version>
 		<ApplicationIcon>gear.ico</ApplicationIcon>
-		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -35,8 +37,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="DotnetRuntimeBootstrapper" Version="2.5.4" />
-<PackageReference Include="Spectre.Console" Version="0.54.0" />
+		<PackageReference Include="Spectre.Console" Version="0.54.0" />
 		<PackageReference Include="Spectre.Console.Cli" Version="0.53.1" />
 	</ItemGroup>
 
