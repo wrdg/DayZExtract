@@ -1,11 +1,17 @@
 <Solution>
   <Configurations>
-    <BuildType Name="Debug" />
-    <BuildType Name="Release" />
     <Platform Name="x64" />
   </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path=".gitmodules" />
+    <File Path="Directory.Build.props" />
+    <File Path="Publish.props" />
+    <File Path="README.md" />
+    <File Path="Release.props" />
+  </Folder>
   <Project Path="src/KuruExtract/KuruExtract.csproj">
-    <BuildType Solution="All|*" Project="Release" />
     <Platform Project="x64" />
   </Project>
 </Solution>

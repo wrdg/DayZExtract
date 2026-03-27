@@ -5,16 +5,24 @@ using System.Text;
 namespace KuruExtract.Steam;
 public class SteamLibrary
 {
-    private static string? _installPath;
+    public static string? InstallPath { get; } = FindInstallPath();
 
-    public static string? InstallPath
+    private static string? FindInstallPath()
     {
-        get
+        if (OperatingSystem.IsWindows())
         {
-            _installPath ??= Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) as string;
-            _installPath ??= Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam", "InstallPath", null) as string;
-            return _installPath.ResolvePath();
+            var path = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) as string;
+            path ??= Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam", "InstallPath", null) as string;
+            return path.ResolvePath();
         }
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string[] candidates = [
+            Path.Combine(home, ".steam", "steam"),
+            Path.Combine(home, ".local", "share", "Steam"),
+            Path.Combine(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam"),
+        ];
+        return candidates.FirstOrDefault(Directory.Exists);
     }
 
     public static Dictionary<int, SteamGame> Games { get; } = [];

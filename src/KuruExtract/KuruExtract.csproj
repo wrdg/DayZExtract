@@ -2,34 +2,12 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net10.0-windows</TargetFramework>
-        <LangVersion>preview</LangVersion>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<Platforms>x64</Platforms>
-        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
-
-    <PropertyGroup>
-        <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
-        <TrimmerSingleWarn>false</TrimmerSingleWarn>
-        <DebuggerSupport>false</DebuggerSupport>
-        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    </PropertyGroup>
 
 	<PropertyGroup>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AssemblyName>DayZExtract</AssemblyName>
-		<Company>Wardog</Company>
-		<Description>Extracts game content for DayZ</Description>
-		<FileVersion>1.1.0</FileVersion>
-		<InformationalVersion>1.1.0</InformationalVersion>
-		<Version>1.1.0</Version>
 		<ApplicationIcon>gear.ico</ApplicationIcon>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-	  <DebugType>none</DebugType>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -37,8 +15,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="ConsoleAppFramework" Version="5.7.13">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="Spectre.Console" Version="0.54.0" />
-		<PackageReference Include="Spectre.Console.Cli" Version="0.53.1" />
 	</ItemGroup>
 
 </Project>

@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace KuruExtract.Update;
-internal sealed class UpdateChecker
+internal sealed partial class UpdateChecker
 {
     public string Owner { get; }
 
@@ -33,7 +33,7 @@ internal sealed class UpdateChecker
 
             if (response == null) return false;
 
-            var update = JsonSerializer.Deserialize<GitHubRelease>(response);
+            var update = JsonSerializer.Deserialize(response, GitHubReleaseContext.Default.GitHubRelease);
 
             if (update == null) return false;
 
@@ -67,4 +67,7 @@ internal sealed class UpdateChecker
         [property: JsonPropertyName("tag_name")] string TagName,
         [property: JsonPropertyName("html_url")] string HtmlUrl
     );
+
+    [JsonSerializable(typeof(GitHubRelease))]
+    private partial class GitHubReleaseContext : JsonSerializerContext;
 }

@@ -1,7 +1,7 @@
-﻿using KuruExtract.Commands;
+using ConsoleAppFramework;
+using KuruExtract.Commands;
 using KuruExtract.Update;
 using Spectre.Console;
-using Spectre.Console.Cli;
 
 namespace KuruExtract;
 public class Program
@@ -10,62 +10,33 @@ public class Program
 
     public static int Main(string[] args)
     {
-        AppDomain.CurrentDomain.ProcessExit += ProcessExitHandler;
-
-#if WINDOWS
-        Console.Title = "DayZExtract";
-        Thread.Sleep(50); // header will get jank on windows terminal
-#endif
-        AnsiConsole.Write(Constants.Header);
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Console.CursorVisible = true;
 
         UpdateChecker = new UpdateChecker("wrdg", "DayZExtract");
 
-        var app = new CommandApp<ExtractDayZCommand>();
-        app.Configure(config =>
-        {
+        var originalArgs = args;
 #if DEBUG
-            config.ValidateExamples();
-#endif
-            config.AddExample(@"P:\");
-            config.AddExample(@"P:\", "--experimental", "-u", "-i", "*.c");
-            config.AddExample(@"P:\", "-u", "-e", "*.p3d,*.ogg,*.aw");
-
-            config.SetApplicationName("DayZExtract.exe");
-
-            config.PropagateExceptions();
-        });
-
-        try
-        {
-#if DEBUG
-            var result = app.Run(args.Length < 1 ? ["P:\\", "-u"] : args);
+        if (args.Length < 1) args = [@"P:\", "-u"];
 #else
-            var result = app.Run(args.Length < 1 ? ["-h"] : args);
+        if (args.Length < 1) args = ["--help"];
 #endif
 
-            if (args.Length >= 1) return result;
-            AnsiConsole.Write("\nPress enter to exit...");
-            while (Console.ReadKey(true).Key != ConsoleKey.Enter)
-            {
-            }
-
-            return result;
-        }
-        catch (Exception ex)
+        if (args is not ["--version"])
         {
-            if (ex is CommandRuntimeException)
-                AnsiConsole.MarkupLine($"[red]{ex.Message}[/]");
-            else
-                AnsiConsole.WriteException(ex, ExceptionFormats.ShortenEverything);
+            if (OperatingSystem.IsWindows())
+                Console.Title = "DayZExtract";
 
-            Thread.Sleep(5000);
+            AnsiConsole.Write(Constants.Header);
+            Console.WriteLine();
         }
 
-        return 0;
-    }
+        ConsoleApp.Run(args, ExtractDayZCommand.Execute);
+        var exitCode = Environment.ExitCode;
 
-    private static void ProcessExitHandler(object? sender, EventArgs e)
-    {
-        Console.CursorVisible = true;
+        if (originalArgs.Length >= 1) return exitCode;
+        AnsiConsole.Write("\nPress enter to exit...");
+        while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
+
+        return exitCode;
     }
 }
