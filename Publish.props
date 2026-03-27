@@ -1,0 +1,49 @@
+<Project>
+    <PropertyGroup>
+        <DefineConstants Condition="'$(IsPublishing)' == 'true'">$(DefineConstants);PUBLISH</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Company>Wardog</Company>
+        <Copyright>Copyright © 2026 $(Company). All Rights Reserved.</Copyright>
+        <AssemblyTitle>DayZExtract</AssemblyTitle>
+        <Description>Extracts game content for DayZ</Description>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Version>1.1.0</Version>
+        <ReleaseType></ReleaseType>
+        <FileVersion>$(Version)</FileVersion>
+        <InformationalVersion Condition="'$(ReleaseType)' != ''">$(FileVersion)-$(ReleaseType)</InformationalVersion>
+        <InformationalVersion Condition="'$(ReleaseType)' == ''">$(FileVersion)</InformationalVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PublishAot>true</PublishAot>
+        <PublishSingleFile>true</PublishSingleFile>
+        <PublishReadyToRun>true</PublishReadyToRun>
+        <PublishTrimmed>true</PublishTrimmed>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <SelfContained>true</SelfContained>
+        <OptimizationPreference>size</OptimizationPreference>
+        <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+        <TrimmerSingleWarn>false</TrimmerSingleWarn>
+        <DebuggerSupport>false</DebuggerSupport>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
+        <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
+        <IlcDisableReflection>true</IlcDisableReflection>
+        <IlcGenerateMstatFile>true</IlcGenerateMstatFile>
+        <IlcGenerateDgmlFile>true</IlcGenerateDgmlFile>
+        <IlcGenerateMapFile>true</IlcGenerateMapFile>
+        <IlcDumpGeneratedIL>true</IlcDumpGeneratedIL>
+    </PropertyGroup>
+
+    <Import Project="$(MSBuildProjectDirectory)\$(MSBuildProjectName).props"
+            Condition="Exists('$(MSBuildProjectDirectory)\$(MSBuildProjectName).props')"/>
+</Project>

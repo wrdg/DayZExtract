@@ -1,0 +1,28 @@
+<Project>
+    <PropertyGroup>
+        <Platforms>x64</Platforms>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>preview</LangVersion>
+        <Nullable>enable</Nullable>
+        <IsAotCompatible>true</IsAotCompatible>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <IsPublishing Condition="'$(_IsPublishing)' != '' And '$(IsPublishing)' == ''">$(_IsPublishing)</IsPublishing>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <IsWindows Condition="'$([System.OperatingSystem]::IsWindows())' == 'true'">true</IsWindows>
+        <IsLinux Condition="'$([System.OperatingSystem]::IsLinux())' == 'true'">true</IsLinux>
+        <IsMacOS Condition="'$([System.OperatingSystem]::IsMacOS())' == 'true'">true</IsMacOS>
+
+        <DefineConstants Condition="'$(IsWindows)' == 'true'">$(DefineConstants);WINDOWS</DefineConstants>
+        <DefineConstants Condition="'$(IsLinux)' == 'true'">$(DefineConstants);LINUX</DefineConstants>
+        <DefineConstants Condition="'$(IsMacOS)' == 'true'">$(DefineConstants);MACOS</DefineConstants>
+    </PropertyGroup>
+
+    <Import Condition="'$(Configuration)' == 'Release'" Project="Release.props"/>
+</Project>

@@ -1,0 +1,11 @@
+<Project>
+    <Import Condition="'$(IsPublishing)' == 'true'" Project="$(SolutionDir)Publish.props"/>
+    
+    <PropertyGroup>
+        <DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <DebugType>none</DebugType>
+    </PropertyGroup>
+</Project>
