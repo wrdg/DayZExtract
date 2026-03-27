@@ -1,6 +1,7 @@
-﻿using KuruExtract.Extensions;
-using Newtonsoft.Json;
+using KuruExtract.Extensions;
 using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KuruExtract.Update;
 internal sealed class UpdateChecker
@@ -32,7 +33,7 @@ internal sealed class UpdateChecker
 
             if (response == null) return false;
 
-            var update = JsonConvert.DeserializeObject<GitHubResponse>(response);
+            var update = JsonSerializer.Deserialize<GitHubRelease>(response);
 
             if (update == null) return false;
 
@@ -62,25 +63,8 @@ internal sealed class UpdateChecker
         return version1.Normalize().CompareTo(version2.Normalize());
     }
 
-    public sealed record GitHubResponse(
-        [property: JsonProperty("url")] string Url,
-        [property: JsonProperty("assets_url")] string AssetsUrl,
-        [property: JsonProperty("upload_url")] string UploadUrl,
-        [property: JsonProperty("html_url")] string HtmlUrl,
-        [property: JsonProperty("id")] int Id,
-        [property: JsonProperty("author")] object Author,
-        [property: JsonProperty("node_id")] string NodeId,
-        [property: JsonProperty("tag_name")] string TagName,
-        [property: JsonProperty("target_commitish")] string TargetCommitish,
-        [property: JsonProperty("name")] string Name,
-        [property: JsonProperty("draft")] bool Draft,
-        [property: JsonProperty("prerelease")] bool Prerelease,
-        [property: JsonProperty("created_at")] DateTime CreatedAt,
-        [property: JsonProperty("published_at")] DateTime PublishedAt,
-        [property: JsonProperty("assets")] IReadOnlyList<object> Assets,
-        [property: JsonProperty("tarball_url")] string TarballUrl,
-        [property: JsonProperty("zipball_url")] string ZipballUrl,
-        [property: JsonProperty("body")] string Body,
-        [property: JsonProperty("reactions")] object Reactions
+    private sealed record GitHubRelease(
+        [property: JsonPropertyName("tag_name")] string TagName,
+        [property: JsonPropertyName("html_url")] string HtmlUrl
     );
 }

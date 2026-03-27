@@ -36,8 +36,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="DotnetRuntimeBootstrapper" Version="2.5.4" />
-<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-		<PackageReference Include="Spectre.Console" Version="0.54.0" />
+<PackageReference Include="Spectre.Console" Version="0.54.0" />
 		<PackageReference Include="Spectre.Console.Cli" Version="0.53.1" />
 	</ItemGroup>
 
