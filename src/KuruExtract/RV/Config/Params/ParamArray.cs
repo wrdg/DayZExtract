@@ -51,6 +51,7 @@ internal sealed class ParamArray : ParamEntry
         {
             sb.Append(innerInd).Append(entries[i]);
             if (i < entries.Length - 1) sb.Append(',');
+            if (entries[i].WasEscaped) sb.Append(" // DayZExtract - resolved quote error within value");
             sb.AppendLine();
         }
         sb.Append(ind).Append("};");

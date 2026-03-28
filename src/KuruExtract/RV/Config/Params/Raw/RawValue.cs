@@ -58,8 +58,15 @@ internal sealed class RawValue
         };
     }
 
+    public bool WasEscaped => Type switch
+    {
+        ValueType.String or ValueType.Expression => ((string)Value).Contains('"'),
+        ValueType.Array => ((RawArray)Value).Entries.Any(e => e.WasEscaped),
+        _ => false
+    };
+
     private static string FormatString(string s) =>
-        s.Contains('"') ? $"\"{s.Replace("\"", "\"\"")}\"" : $"\"{s}\"";
+        s.Contains('"') ? $"\"{s.Replace("\"", "")}\"" : $"\"{s}\"";
 
     internal T Get<T>()
     {

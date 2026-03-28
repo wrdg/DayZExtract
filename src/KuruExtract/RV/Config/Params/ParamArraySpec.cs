@@ -57,12 +57,13 @@ internal sealed class ParamArraySpec : ParamEntry
             {
                 sb.Append(innerInd).Append(entries[i]);
                 if (i < entries.Length - 1) sb.Append(',');
+                if (entries[i].WasEscaped) sb.Append(" // DayZExtract - resolved quote error within value");
                 sb.AppendLine();
             }
             sb.Append(ind).Append("};");
             return sb.ToString();
         }
 
-        return $"{ind}{Name}[] = {Array}; // Unknown flag {Flag}";
+        return $"{ind}{Name}[] = {Array}; // DayZExtract - unknown flag {Flag}";
     }
 }

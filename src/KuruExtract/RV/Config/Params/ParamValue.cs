@@ -35,6 +35,7 @@ internal sealed class ParamValue : ParamEntry
 
     public override string ToString(int indentionLevel)
     {
-        return $"{Indent(indentionLevel)}{Name} = {Value};";
+        var comment = Value.WasEscaped ? " // DayZExtract - resolved quote error within value" : string.Empty;
+        return $"{Indent(indentionLevel)}{Name} = {Value};{comment}";
     }
 }
