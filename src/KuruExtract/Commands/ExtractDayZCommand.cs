@@ -92,6 +92,8 @@ internal static class ExtractDayZCommand
         var stopWatch = Stopwatch.StartNew();
 
         var pbos = GetPBOs(gameInstallPath).ToList();
+        var exts = excludePatterns ?? includePatterns;
+        var isExclude = excludePatterns != null;
 
         var progress = AnsiConsole.Progress()
             .HideCompleted(true)
@@ -107,37 +109,59 @@ internal static class ExtractDayZCommand
         progress.Start(ctx =>
         {
             var tasks = new List<ProgressTask>();
-            var prefixes = new HashSet<string>();
 
             // setup tasks in reverse order
             for (var i = pbos.Count - 1; i >= 0; i--)
+                tasks.Add(ctx.AddTask(pbos[i].FileName!, false, pbos[i].Files.Count).IsIndeterminate());
+
+            // build the full set of destination paths that will be produced by extraction
+            var expectedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pbo in pbos)
             {
-                var pbo = pbos[i];
+                foreach (var file in pbo.Files)
+                {
+                    if (ShouldExclude(file.FileName, exts, isExclude))
+                        continue;
 
-                if (!string.IsNullOrEmpty(pbo.Prefix))
-                    prefixes.Add(pbo.Prefix);
+                    var fileName = file.FileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase)
+                        ? Path.ChangeExtension(file.FileName, ".cpp")
+                        : file.FileName;
 
-                tasks.Add(ctx.AddTask(pbo.FileName!, false, pbo.Files.Count).IsIndeterminate());
+                    expectedFiles.Add(Path.GetFullPath(Path.Combine(destination!, pbo.Prefix ?? string.Empty, fileName)));
+                }
             }
 
-            var cleanTask = ctx.AddTask("Clean up old files", maxValue: prefixes.Count);
+            // find files already on disk that are no longer produced by any PBO
+            var filesToDelete = Directory.Exists(destination!)
+                ? Directory.EnumerateFiles(destination!, "*", SearchOption.AllDirectories)
+                    .Where(f => !expectedFiles.Contains(f))
+                    .ToList()
+                : [];
 
-            foreach (var path in prefixes.Select(prefix => Path.Combine(destination!, prefix)))
+            var cleanTask = ctx.AddTask("Clean up old files", maxValue: Math.Max(filesToDelete.Count, 1));
+
+            foreach (var file in filesToDelete)
             {
-                if (Directory.Exists(path))
+                try
                 {
-                    try
-                    {
-                        Directory.Delete(path, true);
-                    }
-                    catch (IOException ex)
-                    {
-                        cleanupError = $"Could not delete [grey]{path}[/]: {ex.Message}";
-                        return;
-                    }
+                    File.Delete(file);
                 }
-
+                catch (IOException ex)
+                {
+                    cleanupError = $"Could not delete [grey]{file}[/]: {ex.Message}";
+                    return;
+                }
                 cleanTask.Increment(1);
+            }
+
+            if (filesToDelete.Count == 0)
+                cleanTask.Increment(1);
+
+            // remove directories left empty after stale file deletion
+            if (Directory.Exists(destination!))
+            {
+                foreach (var dir in Directory.EnumerateDirectories(destination!))
+                    DeleteEmptyDirectories(dir);
             }
 
             var pboTasks = pbos.Select(pbo => (pbo, task: tasks.First(x => x.Description == pbo.FileName)));
@@ -149,7 +173,7 @@ internal static class ExtractDayZCommand
                 .ForAll(pboTask =>
                 {
                     var (pbo, task) = pboTask;
-                    ExtractFiles(pbo, task, destination!, excludePatterns ?? includePatterns, excludePatterns != null);
+                    ExtractFiles(pbo, task, destination!, exts, isExclude);
                     pbo.Dispose();
                 });
         });
@@ -169,6 +193,15 @@ internal static class ExtractDayZCommand
         while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
 
         return 0;
+    }
+
+    private static void DeleteEmptyDirectories(string path)
+    {
+        foreach (var dir in Directory.EnumerateDirectories(path))
+            DeleteEmptyDirectories(dir);
+
+        if (!Directory.EnumerateFileSystemEntries(path).Any())
+            Directory.Delete(path);
     }
 
     private static string[]? ParsePatterns(string? patterns)
