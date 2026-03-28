@@ -5,6 +5,7 @@ using KuruExtract.Steam;
 using Microsoft.Win32;
 using Spectre.Console;
 using System.Diagnostics;
+using System.Runtime;
 using System.Runtime.InteropServices;
 using Velopack;
 using Velopack.Sources;
@@ -131,12 +132,18 @@ internal static class ExtractDayZCommand
                 }
             }
 
-            // find files already on disk that are no longer produced by any PBO
-            var filesToDelete = Directory.Exists(destination!)
-                ? Directory.EnumerateFiles(destination!, "*", SearchOption.AllDirectories)
-                    .Where(f => !expectedFiles.Contains(f))
-                    .ToList()
-                : [];
+            // scope cleanup to prefix directories only, never touch files outside them
+            var prefixDirs = pbos
+                .Select(pbo => Path.GetFullPath(Path.Combine(destination!, pbo.Prefix ?? string.Empty)))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(Directory.Exists)
+                .ToList();
+
+            // find files within prefix directories that are no longer produced by any PBO
+            var filesToDelete = prefixDirs
+                .SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+                .Where(f => !expectedFiles.Contains(f))
+                .ToList();
 
             var cleanTask = ctx.AddTask("Clean up old files", maxValue: Math.Max(filesToDelete.Count, 1));
 
@@ -157,12 +164,9 @@ internal static class ExtractDayZCommand
             if (filesToDelete.Count == 0)
                 cleanTask.Increment(1);
 
-            // remove directories left empty after stale file deletion
-            if (Directory.Exists(destination!))
-            {
-                foreach (var dir in Directory.EnumerateDirectories(destination!))
-                    DeleteEmptyDirectories(dir);
-            }
+            // remove subdirectories left empty within prefix directories
+            foreach (var prefixDir in prefixDirs)
+                DeleteEmptyDirectories(prefixDir);
 
             var pboTasks = pbos.Select(pbo => (pbo, task: tasks.First(x => x.Description == pbo.FileName)));
             var parallelism = parallel > 1 ? parallel : pbos.Count;
