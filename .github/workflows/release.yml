@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  publish-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install vpk
+        run: dotnet tool install -g vpk
+
+      - name: Get version
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content Publish.props
+          $version = ($props.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish
+        run: dotnet publish src/KuruExtract/KuruExtract.csproj -c Release -r win-x64
+
+      - name: Download previous release
+        run: vpk download github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases
+        continue-on-error: true
+
+      - name: Pack
+        run: vpk pack -u DayZExtract -v ${{ steps.version.outputs.version }} -o ./releases -p ./publish --mainExe DayZExtract.exe --packAuthors Wardog --packTitle "DayZ Extract"
+
+      - name: Upload
+        run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases --publish --tag v${{ steps.version.outputs.version }}
