@@ -5,6 +5,9 @@ using Spectre.Console.Rendering;
 namespace KuruExtract;
 internal static class Constants
 {
+    public const string UpdateUrl = "https://github.com/wrdg/DayZExtract";
+    public const string LegacyProductCode = "{B09BF157-5C17-4087-A2B1-07421300B8C8}";
+
     public static readonly string Version = GetVersion();
 
     private static string GetVersion()

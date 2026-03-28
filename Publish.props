@@ -19,6 +19,10 @@
     </PropertyGroup>
 
     <PropertyGroup>
+        <PublishDir>$(SolutionDir)publish\</PublishDir>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <PublishAot>true</PublishAot>
         <PublishSingleFile>true</PublishSingleFile>
         <PublishReadyToRun>true</PublishReadyToRun>
@@ -37,7 +41,6 @@
     <PropertyGroup>
         <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
         <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
-        <IlcDisableReflection>true</IlcDisableReflection>
         <IlcGenerateMstatFile>true</IlcGenerateMstatFile>
         <IlcGenerateDgmlFile>true</IlcGenerateDgmlFile>
         <IlcGenerateMapFile>true</IlcGenerateMapFile>

@@ -1,25 +1,26 @@
 using ConsoleAppFramework;
 using KuruExtract.Commands;
-using KuruExtract.Update;
 using Spectre.Console;
+using Velopack;
 
 namespace KuruExtract;
 public class Program
 {
-    internal static UpdateChecker UpdateChecker { get; private set; } = null!;
-
     public static int Main(string[] args)
     {
+        VelopackApp.Build().Run();
+
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Console.CursorVisible = true;
 
-        UpdateChecker = new UpdateChecker("wrdg", "DayZExtract");
-
         var originalArgs = args;
+        if (args.Length < 1)
+        {
 #if DEBUG
-        if (args.Length < 1) args = [@"P:\", "-u"];
+            args = [@"P:\", "-u"];
 #else
-        if (args.Length < 1) args = ["--help"];
+            args = OperatingSystem.IsWindows() ? [@"P:\"] : ["--help"];
 #endif
+        }
 
         if (args is not ["--version"])
         {

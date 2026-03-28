@@ -2,9 +2,12 @@ using ConsoleAppFramework;
 using KuruExtract.RV;
 using KuruExtract.RV.PBO;
 using KuruExtract.Steam;
+using Microsoft.Win32;
 using Spectre.Console;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Velopack;
+using Velopack.Sources;
 
 namespace KuruExtract.Commands;
 internal static class ExtractDayZCommand
@@ -54,19 +57,22 @@ internal static class ExtractDayZCommand
 
         if (!unattended)
         {
-            if (Program.UpdateChecker.CheckUpdate())
+            if (OperatingSystem.IsWindows())
+                PromptLegacyUninstall();
+
+            var mgr = new UpdateManager(new GithubSource(Constants.UpdateUrl, null, false));
+            if (mgr.IsInstalled)
             {
-                AnsiConsole.MarkupLine("An update is available!");
-                var update = AnsiConsole.Confirm("Would you like to update?");
-
-                if (update)
+                var info = mgr.CheckForUpdates();
+                if (info != null)
                 {
-                    Process.Start(new ProcessStartInfo(Program.UpdateChecker.DownloadUrl)
+                    AnsiConsole.MarkupLine("[green]An update is available![/]");
+                    if (AnsiConsole.Confirm("Would you like to update?"))
                     {
-                        UseShellExecute = true
-                    });
-
-                    return 1;
+                        mgr.DownloadUpdates(info);
+                        mgr.ApplyUpdatesAndRestart(info);
+                        return 1;
+                    }
                 }
             }
 
@@ -240,6 +246,11 @@ internal static class ExtractDayZCommand
         return 1;
     }
 
+    private static void Warning(string message)
+    {
+        AnsiConsole.MarkupLine($"[yellow]Warning:[/] {message}");
+    }
+
     private static bool ShouldExclude(string fileName, string[]? exts, bool exclude)
     {
         if (exts == null) return false;
@@ -249,5 +260,43 @@ internal static class ExtractDayZCommand
         return exclude
             ? exts.Contains(fileName, new ExtensionEqualityComparer())
             : !exts.Contains(fileName, new ExtensionEqualityComparer());
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static void PromptLegacyUninstall()
+    {
+        var key = Registry.LocalMachine.OpenSubKey(
+            $@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{Constants.LegacyProductCode}");
+
+        if (key == null) return;
+
+        Warning("Legacy installer is detected. It is recommended to uninstall it.\n");
+
+        if (!AnsiConsole.Confirm("Uninstall now?")) return;
+
+        Process.Start(new ProcessStartInfo("msiexec.exe", $"/x {Constants.LegacyProductCode} /qb")
+        {
+            UseShellExecute = true
+        })?.WaitForExit();
+
+        RecreateShortcuts();
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static void RecreateShortcuts()
+    {
+        var exePath = Environment.ProcessPath;
+        if (exePath == null) return;
+
+        string[] lnkPaths = [
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "DayZExtract.lnk"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "DayZExtract.lnk"),
+        ];
+
+        foreach (var lnkPath in lnkPaths)
+        {
+            try { Interop.ShellShortcut.Create(lnkPath, exePath, string.Empty); }
+            catch { }
+        }
     }
 }
