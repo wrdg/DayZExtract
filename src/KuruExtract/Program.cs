@@ -32,16 +32,6 @@ public class Program
         }
 
         ConsoleApp.Run(args, ExtractDayZCommand.Execute);
-        var exitCode = Environment.ExitCode;
-
-        if (originalArgs.Length >= 1) return exitCode;
-
-        if (OperatingSystem.IsWindows())
-        {
-            AnsiConsole.Write("\nPress enter to exit...");
-            while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
-        }            
-
-        return exitCode;
+        return Environment.ExitCode;
     }
 }

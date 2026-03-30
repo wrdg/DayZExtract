@@ -122,6 +122,8 @@ internal static class ExtractDayZCommand
             ]);
 
         string? cleanupError = null;
+        int filesAdded = 0;
+        int filesRemoved = 0;
 
         progress.Start(ctx =>
         {
@@ -160,6 +162,9 @@ internal static class ExtractDayZCommand
                 .SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
                 .Where(f => !expectedFiles.Contains(f))
                 .ToList();
+
+            filesRemoved = filesToDelete.Count;
+            filesAdded = expectedFiles.Count(f => !File.Exists(f));
 
             var cleanTask = ctx.AddTask("Clean up old files", maxValue: Math.Max(filesToDelete.Count, 1));
 
@@ -205,14 +210,22 @@ internal static class ExtractDayZCommand
 
         Console.SetCursorPosition(0, 0);
 
-        RenderBreakdownChart(CollectExtensionStats(pbos, exts, isExclude));
+        var extStats = CollectExtensionStats(pbos, exts, isExclude);
+        RenderBreakdownChart(extStats);
 
+        var totalBytes = extStats.Values.Sum(x => x.Bytes);
         AnsiConsole.MarkupLine($"Extracted [yellow]{gameInstallPath}[/] to [yellow]{destination}[/]");
         AnsiConsole.MarkupLine($"Took [yellow]{FormatElapsed(stopWatch.Elapsed)}[/] to complete the operation");
 
-        if (unattended) return 0;
-        AnsiConsole.Write("\nPress enter to exit...");
-        while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
+        AnsiConsole.MarkupLine($"\n[green]{filesAdded:N0}[/] files added, [red]{filesRemoved:N0}[/] files removed");
+        AnsiConsole.MarkupLine($"Total size extracted [yellow]{FormatBytes(totalBytes)}[/]");
+
+        if (OperatingSystem.IsWindows())
+        {
+            if (unattended) return 0;
+            AnsiConsole.Write("\nPress enter to exit...");
+            while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
+        }
 
         return 0;
     }
@@ -402,18 +415,18 @@ internal static class ExtractDayZCommand
 
     private static int Error(string message)
     {
-        AnsiConsole.MarkupLine($"[red]Error:[/] {message}");
+        AnsiConsole.MarkupLine($"[red]ERROR:[/] {message}");
         return 1;
     }
 
     private static void Warning(string message)
     {
-        AnsiConsole.MarkupLine($"[yellow]Warning:[/] {message}");
+        AnsiConsole.MarkupLine($"[yellow]WARN:[/] {message}");
     }
 
     private static void Info(string message)
     {
-        AnsiConsole.MarkupLine($"[blue]Info:[/] {message}");
+        AnsiConsole.MarkupLine($"[blue]INFO:[/] {message}");
     }
 
     private static bool ShouldExclude(string fileName, string[]? exts, bool exclude)
