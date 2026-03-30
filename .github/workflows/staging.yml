@@ -82,15 +82,16 @@ jobs:
       - name: Pack
         run: vpk pack -u DayZExtract -v ${{ steps.version.outputs.version }} -o ./releases -p ./publish --mainExe DayZExtract.exe --packAuthors Wardog --packTitle "DayZ Extract"
 
-      - name: Remove RELEASES file
-        shell: bash
-        run: rm -f ./releases/RELEASES
+      - name: Upload
+        run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases --publish --tag v${{ steps.version.outputs.version }} --pre
 
       - name: Download linux artifact
         uses: actions/download-artifact@v4
         with:
           name: linux-release
-          path: ./releases
 
-      - name: Upload
-        run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases --publish --tag v${{ steps.version.outputs.version }} --pre
+      - name: Upload linux build to release
+        shell: bash
+        run: gh release upload v${{ steps.version.outputs.version }} dayzextract_v${{ steps.version.outputs.version }}_linux_amd64.tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
