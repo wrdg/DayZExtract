@@ -8,8 +8,43 @@ permissions:
   contents: write
 
 jobs:
+  publish-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Get version
+        id: version
+        run: |
+          version=$(grep -oP '(?<=<Version>)[^<]+' Publish.props | head -1)
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Install AOT prerequisites
+        run: sudo apt-get install -y clang zlib1g-dev
+
+      - name: Publish
+        run: dotnet publish src/KuruExtract/KuruExtract.csproj -c Release -r linux-x64 -o ./publish
+
+      - name: Create tarball
+        run: tar -czf dayzextract_v${{ steps.version.outputs.version }}_linux_amd64.tar.gz -C ./publish DayZExtract
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: dayzextract_v${{ steps.version.outputs.version }}_linux_amd64.tar.gz
+
   publish-windows:
     runs-on: windows-latest
+    needs: publish-linux
 
     steps:
       - uses: actions/checkout@v4
@@ -33,14 +68,25 @@ jobs:
           echo "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Publish
-        run: dotnet publish src/KuruExtract/KuruExtract.csproj -c Release -r win-x64
+        run: dotnet publish -c Release -r win-x64
 
       - name: Download previous release
-        run: vpk download github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases
+        run: vpk download github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o releases
         continue-on-error: true
 
       - name: Pack
-        run: vpk pack -u DayZExtract -v ${{ steps.version.outputs.version }} -o ./releases -p ./publish --mainExe DayZExtract.exe --packAuthors Wardog --packTitle "DayZ Extract"
+        run: vpk pack -u DayZExtract -v ${{ steps.version.outputs.version }} -o releases -p publish --mainExe DayZExtract.exe --packAuthors Wardog
 
       - name: Upload
         run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases --publish --tag v${{ steps.version.outputs.version }}
+
+      - name: Download linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-release
+
+      - name: Upload linux build to release
+        shell: bash
+        run: gh release upload v${{ steps.version.outputs.version }} dayzextract_v${{ steps.version.outputs.version }}_linux_amd64.tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
