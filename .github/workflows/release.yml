@@ -35,4 +35,4 @@ jobs:
         run: vpk pack -u DayZExtract -v ${{ steps.version.outputs.version }} -o releases -p publish --mainExe DayZExtract.exe --packAuthors Wardog --msi --instLocation PerUser
 
       - name: Upload
-        run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases --publish --tag v${{ steps.version.outputs.version }}
+        run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o releases --publish --tag v${{ steps.version.outputs.version }}

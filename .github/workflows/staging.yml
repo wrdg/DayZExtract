@@ -31,11 +31,11 @@ jobs:
         run: dotnet publish src/KuruExtract/KuruExtract.csproj -c Release -r win-x64
 
       - name: Download previous release
-        run: vpk download github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases
+        run: vpk download github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o releases
         continue-on-error: true
 
       - name: Pack
-        run: vpk pack -u DayZExtract -v ${{ steps.version.outputs.version }} -o ./releases -p ./publish --mainExe DayZExtract.exe --packAuthors Wardog --msi --instLocation PerUser
+        run: vpk pack -u DayZExtract -v ${{ steps.version.outputs.version }} -o releases -p publish --mainExe DayZExtract.exe --packAuthors Wardog --msi --instLocation PerUser
 
       - name: Upload
-        run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases --publish --tag v${{ steps.version.outputs.version }} --pre
+        run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o releases --publish --tag v${{ steps.version.outputs.version }} --pre
