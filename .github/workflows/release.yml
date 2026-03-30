@@ -21,7 +21,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Install vpk
-        run: dotnet tool install -g vpk --prerelease
+        run: dotnet tool install -g vpk --version 0.0.1535-gb21da2a
 
       - name: Get version
         id: version
