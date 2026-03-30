@@ -21,7 +21,7 @@ internal static class Constants
     }
 
     public static IRenderable Header =>
-        new Panel(new Markup("\nExtracts game content for DayZ\nby Wardog\n").Centered())
+        new Panel(new Markup("\nGame content extraction tool for DayZ\nDeveloped by Wardog\n\nhttps://github.com/wrdg/DayZExtract\n").Centered())
             .Header($"DayZExtract v{Version}", Justify.Center)
             .SafeBorder()
             .Border(BoxBorder.Heavy)
