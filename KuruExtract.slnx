@@ -7,6 +7,7 @@
     <File Path=".gitignore" />
     <File Path=".gitmodules" />
     <File Path="Directory.Build.props" />
+    <File Path="LICENSE" />
     <File Path="Publish.props" />
     <File Path="README.md" />
     <File Path="Release.props" />
