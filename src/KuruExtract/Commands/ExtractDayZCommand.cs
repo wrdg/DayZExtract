@@ -205,6 +205,8 @@ internal static class ExtractDayZCommand
 
         Console.SetCursorPosition(0, 0);
 
+        RenderBreakdownChart(CollectExtensionStats(pbos, exts, isExclude));
+
         AnsiConsole.MarkupLine($"Extracted [yellow]{gameInstallPath}[/] to [yellow]{destination}[/]");
         AnsiConsole.MarkupLine($"Took [yellow]{FormatElapsed(stopWatch.Elapsed)}[/] to complete the operation");
 
@@ -291,6 +293,111 @@ internal static class ExtractDayZCommand
 
             task.Increment(1);
         }
+    }
+
+    private static Dictionary<string, (long Count, long Bytes)> CollectExtensionStats(List<PBO> pbos, string[]? exts, bool isExclude)
+    {
+        var stats = new Dictionary<string, (long Count, long Bytes)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pbo in pbos)
+        {
+            foreach (var file in pbo.Files)
+            {
+                if (ShouldExclude(file.FileName, exts, isExclude))
+                    continue;
+
+                var name = file.FileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase)
+                    ? Path.ChangeExtension(file.FileName, ".cpp")
+                    : file.FileName;
+
+                var ext = Path.GetExtension(name).ToLowerInvariant();
+                if (string.IsNullOrEmpty(ext)) ext = "(no ext)";
+
+                stats.TryGetValue(ext, out var current);
+                stats[ext] = (current.Count + 1, current.Bytes + file.DiskSize);
+            }
+        }
+        return stats;
+    }
+
+    private static readonly Dictionary<string, Color> ExtensionColors = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // textures
+        { "paa",      Color.Blue            },
+        { "dds",      Color.SteelBlue1      },
+        { "edds",     Color.DodgerBlue1     },
+        { "tga",      Color.CornflowerBlue  },
+        { "txo",      Color.SkyBlue1        },
+        { "nm",       Color.SlateBlue1      },
+        { "pac",      Color.LightSkyBlue1   },
+        // models and animation
+        { "p3d",      Color.Green           },
+        { "xob",      Color.SpringGreen1    },
+        { "anm",      Color.Chartreuse1     },
+        { "agr",      Color.DarkSeaGreen1   },
+        { "asi",      Color.DarkSeaGreen2   },
+        { "ast",      Color.DarkSeaGreen3   },
+        { "asy",      Color.DarkSeaGreen4   },
+        { "aw",       Color.DarkOliveGreen1 },
+        // world
+        { "wrp",      Color.Teal            },
+        { "map",      Color.DarkCyan        },
+        // audio
+        { "ogg",      Color.Orange1         },
+        // scripts and configs
+        { "cpp",      Color.Red             },
+        { "hpp",      Color.IndianRed1      },
+        { "c",        Color.LightCoral      },
+        { "xml",      Color.OrangeRed1      },
+        { "json",     Color.DarkOrange      },
+        { "csv",      Color.Gold1           },
+        { "cfg",      Color.Yellow          },
+        { "txt",      Color.Cornsilk1       },
+        // shaders
+        { "pso",      Color.Fuchsia         },
+        { "vso",      Color.DeepPink1       },
+        { "cso",      Color.MediumOrchid1   },
+        { "vert",     Color.Orchid1         },
+        { "frag",     Color.Plum1           },
+        // materials and UI
+        { "rvmat",    Color.Aqua            },
+        { "bisurf",   Color.Turquoise2      },
+        { "emat",     Color.DarkTurquoise   },
+        { "layout",   Color.Lime            },
+        { "styles",   Color.GreenYellow     },
+        { "imageset", Color.PaleGreen1      },
+        { "qss",      Color.SeaGreen1       },
+        // fonts
+        { "ttf",      Color.Magenta1        },
+        { "fnt",      Color.MediumPurple1   },
+    };
+
+    private static readonly string[] SizeUnits = ["B", "KB", "MB", "GB", "TB", "PB"];
+
+    private static string FormatBytes(double bytes)
+    {
+        if (bytes <= 0) return $"0 {SizeUnits[0]}";
+
+        var index = (int)Math.Truncate(Math.Log(bytes, 1024));
+        index = Math.Clamp(index, 0, SizeUnits.Length - 1);
+        return $"{bytes / Math.Pow(1024, index):N2} {SizeUnits[index]}";
+    }
+
+    private static void RenderBreakdownChart(Dictionary<string, (long Count, long Bytes)> extStats)
+    {
+        if (extStats.Count == 0) return;
+
+        var chart = new BreakdownChart()
+            .Width(Math.Min(Console.WindowWidth - 2, 80))
+            .UseValueFormatter((value, _) => FormatBytes(value));
+
+        foreach (var (ext, (_, bytes)) in extStats.OrderByDescending(x => x.Value.Bytes))
+        {
+            var color = ExtensionColors.GetValueOrDefault(ext.TrimStart('.'), Color.Grey);
+            chart.AddItem(ext, bytes, color);
+        }
+
+        AnsiConsole.Write(chart);
+        AnsiConsole.WriteLine();
     }
 
     private static int Error(string message)
