@@ -28,7 +28,7 @@ jobs:
           echo "version=$version-$label" >> $env:GITHUB_OUTPUT
 
       - name: Publish
-        run: dotnet publish src/KuruExtract/KuruExtract.csproj -c Release -r win-x64
+        run: dotnet publish -c Release -r win-x64
 
       - name: Download previous release
         run: vpk download github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o releases
