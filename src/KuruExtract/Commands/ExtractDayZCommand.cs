@@ -61,13 +61,25 @@ internal static class ExtractDayZCommand
             if (OperatingSystem.IsWindows())
                 PromptLegacyUninstall();
 
-            var mgr = new UpdateManager(new GithubSource(Constants.UpdateUrl, null, false));
+            var mgr = new UpdateManager(new GithubSource(Constants.UpdateUrl, null, true));
             if (mgr.IsInstalled)
             {
                 var info = mgr.CheckForUpdates();
+
                 if (info != null)
                 {
-                    AnsiConsole.MarkupLine("[green]An update is available![/]");
+                    
+                    Info($"An update is available v{info.TargetFullRelease.Version}");
+                    if (!info.TargetFullRelease.Version.IsPrerelease)
+                    {
+                        Console.WriteLine();
+                    }
+
+                    if (info.TargetFullRelease.Version.IsPrerelease)
+                    {
+                        Warning("This update is a pre-release.\n");
+                    }
+
                     if (AnsiConsole.Confirm("Would you like to update?"))
                     {
                         mgr.DownloadUpdates(info);
@@ -286,6 +298,11 @@ internal static class ExtractDayZCommand
     private static void Warning(string message)
     {
         AnsiConsole.MarkupLine($"[yellow]Warning:[/] {message}");
+    }
+
+    private static void Info(string message)
+    {
+        AnsiConsole.MarkupLine($"[blue]Info:[/] {message}");
     }
 
     private static bool ShouldExclude(string fileName, string[]? exts, bool exclude)
