@@ -122,8 +122,6 @@ internal static class ExtractDayZCommand
             ]);
 
         string? cleanupError = null;
-        int filesAdded = 0;
-        int filesRemoved = 0;
 
         progress.Start(ctx =>
         {
@@ -150,9 +148,15 @@ internal static class ExtractDayZCommand
                 }
             }
 
-            // scope cleanup to prefix directories only, never touch files outside them
+            // scope cleanup to unique root prefix directories (first path segment of each PBO prefix)
+            // so that stale files from reorganised or removed PBOs under the same root are also caught
             var prefixDirs = pbos
-                .Select(pbo => Path.GetFullPath(Path.Combine(destination!, pbo.Prefix ?? string.Empty)))
+                .Select(pbo =>
+                {
+                    var prefix = pbo.Prefix ?? string.Empty;
+                    var root = prefix.Split(['/', '\\'], 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? prefix;
+                    return Path.GetFullPath(Path.Combine(destination!, root));
+                })
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Where(Directory.Exists)
                 .ToList();
@@ -162,9 +166,6 @@ internal static class ExtractDayZCommand
                 .SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
                 .Where(f => !expectedFiles.Contains(f))
                 .ToList();
-
-            filesRemoved = filesToDelete.Count;
-            filesAdded = expectedFiles.Count(f => !File.Exists(f));
 
             var cleanTask = ctx.AddTask("Clean up old files", maxValue: Math.Max(filesToDelete.Count, 1));
 
@@ -217,7 +218,6 @@ internal static class ExtractDayZCommand
         AnsiConsole.MarkupLine($"Extracted [yellow]{gameInstallPath}[/] to [yellow]{destination}[/]");
         AnsiConsole.MarkupLine($"Took [yellow]{FormatElapsed(stopWatch.Elapsed)}[/] to complete the operation");
 
-        AnsiConsole.MarkupLine($"\n[green]{filesAdded:N0}[/] files added, [red]{filesRemoved:N0}[/] files removed");
         AnsiConsole.MarkupLine($"Total size extracted [yellow]{FormatBytes(totalBytes)}[/]");
 
         if (OperatingSystem.IsWindows())
