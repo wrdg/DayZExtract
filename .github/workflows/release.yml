@@ -8,43 +8,8 @@ permissions:
   contents: write
 
 jobs:
-  publish-linux:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Get version
-        id: version
-        run: |
-          version=$(grep -oP '(?<=<Version>)[^<]+' Publish.props | head -1)
-          echo "version=$version" >> $GITHUB_OUTPUT
-
-      - name: Install AOT prerequisites
-        run: sudo apt-get install -y clang zlib1g-dev
-
-      - name: Publish
-        run: dotnet publish src/KuruExtract/KuruExtract.csproj -c Release -r linux-x64 -o ./publish
-
-      - name: Create tarball
-        run: tar -czf dayzextract_v${{ steps.version.outputs.version }}_linux_amd64.tar.gz -C ./publish DayZExtract
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-release
-          path: dayzextract_v${{ steps.version.outputs.version }}_linux_amd64.tar.gz
-
   publish-windows:
     runs-on: windows-latest
-    needs: publish-linux
 
     steps:
       - uses: actions/checkout@v4
@@ -57,7 +22,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Install vpk
-        run: dotnet tool install -g vpk
+        run: dotnet tool install -g vpk --prerelease
 
       - name: Get version
         id: version
@@ -75,7 +40,7 @@ jobs:
         continue-on-error: true
 
       - name: Pack
-        run: vpk pack -u DayZExtract -v ${{ steps.version.outputs.version }} -o releases -p publish --mainExe DayZExtract.exe --packAuthors Wardog
+        run: vpk pack -u DayZExtract -v ${{ steps.version.outputs.version }} -o releases -p publish --mainExe DayZExtract.exe --packAuthors Wardog --msi --instLocation PerUser
 
       - name: Upload
         run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases --publish --tag v${{ steps.version.outputs.version }}
