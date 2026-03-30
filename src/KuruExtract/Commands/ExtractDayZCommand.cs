@@ -5,7 +5,6 @@ using KuruExtract.Steam;
 using Microsoft.Win32;
 using Spectre.Console;
 using System.Diagnostics;
-using System.Runtime;
 using System.Runtime.InteropServices;
 using Velopack;
 using Velopack.Sources;
@@ -91,9 +90,14 @@ internal static class ExtractDayZCommand
 
             destination = AnsiConsole.Prompt(
                 new TextPrompt<string>("Destination path")
-                    .DefaultValue(destination)
-                    .ValidationErrorMessage("[red]Not a valid path[/]")
-                    .Validate(Directory.Exists));
+                    .DefaultValue(destination));
+                    
+            if (!Directory.Exists(destination))
+            {
+                Console.WriteLine();
+                Error("Destination directory does not exist.");
+                return 1;
+            }
 
             if (promptExperimental && !experimental && GamePath.Experimental != null)
             {
