@@ -84,14 +84,3 @@ jobs:
 
       - name: Upload
         run: vpk upload github --repoUrl https://github.com/wrdg/DayZExtract --token ${{ secrets.GITHUB_TOKEN }} -o ./releases --publish --tag v${{ steps.version.outputs.version }} --pre
-
-      - name: Download linux artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-release
-
-      - name: Upload linux build to release
-        shell: bash
-        run: gh release upload v${{ steps.version.outputs.version }} DayZExtract_v${{ steps.version.outputs.version }}_linux_amd64.tar.gz
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
