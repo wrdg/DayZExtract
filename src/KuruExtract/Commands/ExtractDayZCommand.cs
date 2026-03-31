@@ -91,6 +91,11 @@ internal static class ExtractDayZCommand
                 }
             }
 
+            if (includeExtensions != null)
+                Info($"Including only: [yellow]{includeExtensions}[/]\n");
+            else if (excludeExtensions != null)
+                Info($"Excluding: [yellow]{excludeExtensions}[/]\n");
+
             destination = AnsiConsole.Prompt(
                 new TextPrompt<string>("Destination path")
                     .DefaultValue(destination));
