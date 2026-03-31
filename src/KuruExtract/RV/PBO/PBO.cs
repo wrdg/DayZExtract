@@ -159,12 +159,21 @@ internal sealed class PBO : IDisposable
         }
     }
 
-    public static void ExtractFile(IPBOFileEntry entry, string target)
+    public static void ExtractFile(IPBOFileEntry entry, string target, string? injectSubDir = null)
     {
         string fileName = entry.FileName;
         bool isConfigBin = fileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase);
         if (isConfigBin)
             fileName = Path.ChangeExtension(fileName, ".cpp");
+
+        // splice in the injectSubDir after the first path segment
+        if (injectSubDir != null)
+        {
+            var sep = fileName.IndexOfAny(['/', '\\']);
+            fileName = sep < 0
+                ? Path.Combine(fileName, injectSubDir)
+                : Path.Combine(fileName[..sep], injectSubDir, fileName[(sep + 1)..]);
+        }
 
         var path = Path.Combine(target, fileName);
         var parentDir = Path.GetDirectoryName(path);

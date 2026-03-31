@@ -23,6 +23,7 @@ internal static class ExtractDayZCommand
     /// <param name="includeExtensions">-i, Comma-separated list of extensions to be included in extraction.</param>
     /// <param name="excludeExtensions">-e, Comma-separated list of extensions to be excluded from extraction.</param>
     /// <param name="parallel">-p, Maximum number of PBOs to extract simultaneously.</param>
+    /// <param name="flatScripts">-f, Extract scripts flat (no DayZ subfolder per module).</param>
     public static int Execute(
         [Argument] string? destination = null,
         bool unattended = false,
@@ -31,6 +32,7 @@ internal static class ExtractDayZCommand
         string? includeExtensions = null,
         string? excludeExtensions = null,
         int parallel = 0,
+        bool flatScripts = false,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(destination))
@@ -147,6 +149,15 @@ internal static class ExtractDayZCommand
                         ? Path.ChangeExtension(file.FileName, ".cpp")
                         : file.FileName;
 
+                    // Mirror the injectSubDir logic in PBO.ExtractFile so expected paths match what extraction produces.
+                    if (!flatScripts && IsScriptsPBO(pbo.Prefix))
+                    {
+                        var sep = fileName.IndexOfAny(['/', '\\']);
+                        fileName = sep < 0
+                            ? Path.Combine(fileName, "DayZ")
+                            : Path.Combine(fileName[..sep], "DayZ", fileName[(sep + 1)..]);
+                    }
+
                     expectedFiles.Add(Path.GetFullPath(Path.Combine(destination!, pbo.Prefix ?? string.Empty, fileName)));
                 }
             }
@@ -209,7 +220,7 @@ internal static class ExtractDayZCommand
                 .ForAll(pboTask =>
                 {
                     var (pbo, task) = pboTask;
-                    ExtractFiles(pbo, task, destination!, exts, isExclude);
+                    ExtractFiles(pbo, task, destination!, exts, isExclude, flatScripts);
                     pbo.Dispose();
                 });
         });
@@ -249,6 +260,14 @@ internal static class ExtractDayZCommand
 
         if (!Directory.EnumerateFileSystemEntries(path).Any())
             Directory.Delete(path);
+    }
+
+    private static bool IsScriptsPBO(string? prefix)
+    {
+        if (prefix == null) return false;
+        var firstSep = prefix.IndexOfAny(['/', '\\']);
+        var firstSegment = firstSep < 0 ? prefix : prefix.AsSpan(0, firstSep);
+        return firstSegment.Equals("scripts", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string[]? ParsePatterns(string? patterns)
@@ -302,7 +321,7 @@ internal static class ExtractDayZCommand
         }
     }
 
-    private static void ExtractFiles(PBO pbo, ProgressTask task, string destination, string[]? exts, bool exclude)
+    private static void ExtractFiles(PBO pbo, ProgressTask task, string destination, string[]? exts, bool exclude, bool flatScripts)
     {
         if (task.IsIndeterminate)
             task.IsIndeterminate(false);
@@ -310,13 +329,13 @@ internal static class ExtractDayZCommand
         if (!task.IsStarted)
             task.StartTask();
 
+        var path = Path.Combine(destination, pbo.Prefix ?? string.Empty);
+        var injectSubDir = !flatScripts && IsScriptsPBO(pbo.Prefix) ? "DayZ" : null;
+
         foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
         {
             if (!ShouldExclude(file.FileName, exts, exclude))
-            {
-                var path = Path.Combine(destination, pbo.Prefix ?? string.Empty);
-                PBO.ExtractFile(file, path);
-            }
+                PBO.ExtractFile(file, path, injectSubDir);
 
             task.Increment(1);
         }
