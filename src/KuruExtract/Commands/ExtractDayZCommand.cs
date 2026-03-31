@@ -4,6 +4,7 @@ using KuruExtract.RV.PBO;
 using KuruExtract.Steam;
 using Microsoft.Win32;
 using Spectre.Console;
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Velopack;
@@ -345,7 +346,7 @@ internal static class ExtractDayZCommand
         return stats;
     }
 
-    private static readonly Dictionary<string, Color> ExtensionColors = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenDictionary<string, Color> ExtensionColors = new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase)
     {
         // textures
         { "paa",      Color.Blue            },
@@ -395,7 +396,7 @@ internal static class ExtractDayZCommand
         // fonts
         { "ttf",      Color.Magenta1        },
         { "fnt",      Color.MediumPurple1   },
-    };
+    }.ToFrozenDictionary();
 
     private static readonly string[] SizeUnits = ["B", "KB", "MB", "GB", "TB", "PB"];
 
