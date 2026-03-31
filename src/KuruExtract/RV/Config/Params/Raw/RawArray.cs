@@ -15,7 +15,10 @@ internal sealed class RawArray
     public RawArray(RVBinaryReader input)
     {
         var nEntries = input.ReadCompactInteger();
-        Entries = [.. Enumerable.Range(0, nEntries).Select(_ => new RawValue(input))];
+        var entries = new List<RawValue>(nEntries);
+        for (var i = 0; i < nEntries; i++)
+            entries.Add(new RawValue(input));
+        Entries = entries;
     }
 
     public override string ToString()
