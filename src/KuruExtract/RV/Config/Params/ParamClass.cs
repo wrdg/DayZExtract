@@ -50,7 +50,10 @@ internal sealed class ParamClass : ParamEntry
         BaseClassName = input.ReadAsciiz();
 
         var nEntries = input.ReadCompactInteger();
-        Entries = [.. Enumerable.Range(0, nEntries).Select(_ => ReadParamEntry(input))];
+        var entries = new List<ParamEntry>(nEntries);
+        for (var i = 0; i < nEntries; i++)
+            entries.Add(ReadParamEntry(input));
+        Entries = entries;
     }
 
     public string ToString(int indentionLevel, bool onlyClassBody)
