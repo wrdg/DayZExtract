@@ -122,6 +122,8 @@ internal static class ExtractDayZCommand
             ]);
 
         string? cleanupError = null;
+        int filesAdded = 0;
+        int filesDeleted = 0;
 
         progress.Start(ctx =>
         {
@@ -161,11 +163,18 @@ internal static class ExtractDayZCommand
                 .Where(Directory.Exists)
                 .ToList();
 
-            // find files within prefix directories that are no longer produced by any PBO
-            var filesToDelete = prefixDirs
+            // snapshot existing files to compute add/remove diff
+            var existingFiles = prefixDirs
                 .SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // find files within prefix directories that are no longer produced by any PBO
+            var filesToDelete = existingFiles
                 .Where(f => !expectedFiles.Contains(f))
                 .ToList();
+
+            filesDeleted = filesToDelete.Count;
+            filesAdded = expectedFiles.Count(f => !existingFiles.Contains(f));
 
             var cleanTask = ctx.AddTask("Clean up old files", maxValue: Math.Max(filesToDelete.Count, 1));
 
@@ -218,7 +227,9 @@ internal static class ExtractDayZCommand
         AnsiConsole.MarkupLine($"Extracted [yellow]{gameInstallPath}[/] to [yellow]{destination}[/]");
         AnsiConsole.MarkupLine($"Took [yellow]{FormatElapsed(stopWatch.Elapsed)}[/] to complete the operation");
 
+        AnsiConsole.MarkupLine($"\n[green]+{filesAdded:N0}[/] added [red]-{filesDeleted:N0}[/] removed");
         AnsiConsole.MarkupLine($"Total size extracted [yellow]{FormatBytes(totalBytes)}[/]");
+        
 
         if (OperatingSystem.IsWindows())
         {
@@ -276,12 +287,14 @@ internal static class ExtractDayZCommand
 
             foreach (var pboPath in Directory.EnumerateFiles(dir, "*.pbo", SearchOption.TopDirectoryOnly))
             {
+                // only return PBOs that have a dayz signature
                 if (File.Exists(pboPath + ".dayz.bisign"))
                     yield return new PBO(pboPath);
             }
 
             foreach (var subDir in Directory.EnumerateDirectories(dir))
             {
+                // ignore junction and symbolic links
                 if (!new DirectoryInfo(subDir).Attributes.HasFlag(FileAttributes.ReparsePoint))
                     dirs.Push(subDir);
             }
