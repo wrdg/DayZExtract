@@ -1,5 +1,4 @@
-﻿using Buffers = System.Buffers;
-using KuruExtract.RV.Compression;
+﻿using KuruExtract.RV.Compression;
 using System.Text;
 
 namespace KuruExtract.RV.IO;
@@ -18,15 +17,29 @@ public class RVBinaryReader : BinaryReader
 
     public string ReadAsciiz()
     {
-        var str = new StringBuilder();
+        Span<char> buffer = stackalloc char[256];
+        int len = 0;
 
         char ch;
         while ((ch = (char)ReadByte()) != 0)
         {
-            str.Append(ch);
+            if (len < buffer.Length)
+            {
+                buffer[len++] = ch;
+            }
+            else
+            {
+                // filename exceeded 256 chars — fall back to StringBuilder
+                var sb = new StringBuilder(512);
+                sb.Append(buffer);
+                sb.Append(ch);
+                while ((ch = (char)ReadByte()) != 0)
+                    sb.Append(ch);
+                return sb.ToString();
+            }
         }
 
-        return str.ToString();
+        return new string(buffer[..len]);
     }
 
     public byte[] ReadLZSS(uint expectedSize)
