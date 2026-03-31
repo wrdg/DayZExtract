@@ -336,7 +336,7 @@ internal static class ExtractDayZCommand
                     ? Path.ChangeExtension(file.FileName, ".cpp")
                     : file.FileName;
 
-                var ext = Path.GetExtension(name).ToLowerInvariant();
+                var ext = Path.GetExtension(name);
                 if (string.IsNullOrEmpty(ext)) ext = "(no ext)";
 
                 stats.TryGetValue(ext, out var current);
@@ -400,6 +400,8 @@ internal static class ExtractDayZCommand
 
     private static readonly string[] SizeUnits = ["B", "KB", "MB", "GB", "TB", "PB"];
 
+    private static readonly ExtensionEqualityComparer ExtensionComparer = new();
+
     private static string FormatBytes(double bytes)
     {
         if (bytes <= 0) return $"0 {SizeUnits[0]}";
@@ -450,8 +452,8 @@ internal static class ExtractDayZCommand
         fileName = fileName.Replace("config.bin", "config.cpp");
 
         return exclude
-            ? exts.Contains(fileName, new ExtensionEqualityComparer())
-            : !exts.Contains(fileName, new ExtensionEqualityComparer());
+            ? exts.Contains(fileName, ExtensionComparer)
+            : !exts.Contains(fileName, ExtensionComparer);
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
