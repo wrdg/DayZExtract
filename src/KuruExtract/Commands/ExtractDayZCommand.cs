@@ -153,9 +153,13 @@ internal static class ExtractDayZCommand
                     if (!flatScripts && IsScriptsPBO(pbo.Prefix))
                     {
                         var sep = fileName.IndexOfAny(['/', '\\']);
-                        fileName = sep < 0
-                            ? Path.Combine(fileName, "DayZ")
-                            : Path.Combine(fileName[..sep], "DayZ", fileName[(sep + 1)..]);
+
+                        // handle editor/ paths by skipping the "editor" segment and inserting after that instead
+                        if (sep >= 0 && fileName.AsSpan(0, sep).Equals("editor", StringComparison.OrdinalIgnoreCase))
+                            sep = fileName.IndexOfAny(['/', '\\'], sep + 1);
+
+                        if (sep >= 0)
+                            fileName = Path.Combine(fileName[..sep], "DayZ", fileName[(sep + 1)..]);
                     }
 
                     expectedFiles.Add(Path.GetFullPath(Path.Combine(destination!, pbo.Prefix ?? string.Empty, fileName)));

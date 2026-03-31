@@ -170,9 +170,13 @@ internal sealed class PBO : IDisposable
         if (injectSubDir != null)
         {
             var sep = fileName.IndexOfAny(['/', '\\']);
-            fileName = sep < 0
-                ? Path.Combine(fileName, injectSubDir)
-                : Path.Combine(fileName[..sep], injectSubDir, fileName[(sep + 1)..]);
+
+            // handle editor/ paths by skipping the "editor" segment and inserting after that instead
+            if (sep >= 0 && fileName.AsSpan(0, sep).Equals("editor", StringComparison.OrdinalIgnoreCase))
+                sep = fileName.IndexOfAny(['/', '\\'], sep + 1);
+
+            if (sep >= 0)
+                fileName = Path.Combine(fileName[..sep], injectSubDir, fileName[(sep + 1)..]);
         }
 
         var path = Path.Combine(target, fileName);
