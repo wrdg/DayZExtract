@@ -19,8 +19,8 @@ internal sealed class ParamFile
 
     public void Read(RVBinaryReader input)
     {
-        var sig = new char[] { '\0', 'r', 'a', 'P' };
-        if (!input.ReadBytes(4).SequenceEqual(sig.Select(c => (byte)c)))
+        ReadOnlySpan<byte> sig = [0x00, 0x72, 0x61, 0x50];
+        if (!input.ReadBytes(4).AsSpan().SequenceEqual(sig))
         {
             input.BaseStream.Seek(-4, SeekOrigin.Current);
             throw new FormatException();
