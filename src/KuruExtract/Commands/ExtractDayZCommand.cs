@@ -322,9 +322,11 @@ internal static class ExtractDayZCommand
         }
     }
 
-    private static Dictionary<string, (long Count, long Bytes)> CollectExtensionStats(List<PBO> pbos, string[]? exts, bool isExclude)
+    private readonly record struct ExtensionStat(long Count, long Bytes);
+
+    private static Dictionary<string, ExtensionStat> CollectExtensionStats(List<PBO> pbos, string[]? exts, bool isExclude)
     {
-        var stats = new Dictionary<string, (long Count, long Bytes)>(StringComparer.OrdinalIgnoreCase);
+        var stats = new Dictionary<string, ExtensionStat>(StringComparer.OrdinalIgnoreCase);
         foreach (var pbo in pbos)
         {
             foreach (var file in pbo.Files)
@@ -340,7 +342,7 @@ internal static class ExtractDayZCommand
                 if (string.IsNullOrEmpty(ext)) ext = "(no ext)";
 
                 stats.TryGetValue(ext, out var current);
-                stats[ext] = (current.Count + 1, current.Bytes + file.DiskSize);
+                stats[ext] = new(current.Count + 1, current.Bytes + file.DiskSize);
             }
         }
         return stats;
@@ -411,7 +413,7 @@ internal static class ExtractDayZCommand
         return $"{bytes / Math.Pow(1024, index):N2} {SizeUnits[index]}";
     }
 
-    private static void RenderBreakdownChart(Dictionary<string, (long Count, long Bytes)> extStats)
+    private static void RenderBreakdownChart(Dictionary<string, ExtensionStat> extStats)
     {
         if (extStats.Count == 0) return;
 
