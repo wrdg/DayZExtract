@@ -16,7 +16,7 @@ Extracts and decompresses game content from DayZ PBOs with a live terminal exper
 - **Flexible filtering** include or exclude specific file extensions
 
 ## Installation
-Download the latest installer from the [Releases](https://github.com/wrdg/DayZExtract/releases) page.
+Download the latest installer from the [Releases](https://github.com/wrdg/DayZExtract/releases/latest) page.
 
 The installer creates a shortcut on your desktop and in the Start Menu.
 
