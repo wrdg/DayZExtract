@@ -33,7 +33,18 @@ public class Program
             Console.WriteLine();
         }
 
-        ConsoleApp.Run(args, ExtractDayZCommand.Execute);
+        try
+        {
+            ConsoleApp.Run(args, ExtractDayZCommand.Execute);
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]UNHANDLED EXCEPTION:[/] {Markup.Escape(ex.Message)}");
+            AnsiConsole.MarkupLine($"[grey]{Markup.Escape(ex.StackTrace ?? string.Empty)}[/]");
+            ExtractDayZCommand.PauseIfAttended();
+            return 1;
+        }
+
         return Environment.ExitCode;
     }
 }
