@@ -41,9 +41,6 @@ internal static class ExtractDayZCommand
 
         if (!_unattended)
         {
-            if (OperatingSystem.IsWindows())
-                PromptLegacyUninstall();
-
             UpdateInfo? info = null;
             var mgr = new UpdateManager(new GithubSource(Constants.UpdateUrl, null, true));
 
@@ -91,6 +88,9 @@ internal static class ExtractDayZCommand
                     }
                 }
             }
+
+            if (OperatingSystem.IsWindows())
+                PromptLegacyUninstall();
         }
 
         if (string.IsNullOrWhiteSpace(destination))
