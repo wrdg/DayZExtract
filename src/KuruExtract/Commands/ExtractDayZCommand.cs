@@ -139,106 +139,119 @@ internal static class ExtractDayZCommand
         int filesAdded = 0;
         int filesDeleted = 0;
 
-        progress.Start(ctx =>
+        try
         {
-            var tasks = new List<ProgressTask>();
-
-            // setup tasks in reverse order
-            for (var i = pbos.Count - 1; i >= 0; i--)
-                tasks.Add(ctx.AddTask(pbos[i].FileName!, false, pbos[i].Files.Count).IsIndeterminate());
-
-            // build the full set of destination paths that will be produced by extraction
-            var expectedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var pbo in pbos)
+            progress.Start(ctx =>
             {
-                foreach (var file in pbo.Files)
+                var tasks = new List<ProgressTask>();
+
+                // setup tasks in reverse order
+                for (var i = pbos.Count - 1; i >= 0; i--)
+                    tasks.Add(ctx.AddTask(pbos[i].FileName!, false, pbos[i].Files.Count).IsIndeterminate());
+
+                // build the full set of destination paths that will be produced by extraction
+                var expectedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var pbo in pbos)
                 {
-                    if (ShouldExclude(file.FileName, exts, isExclude))
-                        continue;
-
-                    var fileName = file.FileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase)
-                        ? Path.ChangeExtension(file.FileName, ".cpp")
-                        : file.FileName;
-
-                    // Mirror the injectSubDir logic in PBO.ExtractFile so expected paths match what extraction produces.
-                    if (!flatScripts && IsScriptsPBO(pbo.Prefix))
+                    foreach (var file in pbo.Files)
                     {
-                        var sep = fileName.IndexOfAny(['/', '\\']);
+                        if (ShouldExclude(file.FileName, exts, isExclude))
+                            continue;
 
-                        // handle editor/ paths by skipping the "editor" segment and inserting after that instead
-                        if (sep >= 0 && fileName.AsSpan(0, sep).Equals("editor", StringComparison.OrdinalIgnoreCase))
-                            sep = fileName.IndexOfAny(['/', '\\'], sep + 1);
+                        var fileName = file.FileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase)
+                            ? Path.ChangeExtension(file.FileName, ".cpp")
+                            : file.FileName;
 
-                        if (sep >= 0)
-                            fileName = Path.Combine(fileName[..sep], "DayZ", fileName[(sep + 1)..]);
+                        // Mirror the injectSubDir logic in PBO.ExtractFile so expected paths match what extraction produces.
+                        if (!flatScripts && IsScriptsPBO(pbo.Prefix))
+                        {
+                            var sep = fileName.IndexOfAny(['/', '\\']);
+
+                            // handle editor/ paths by skipping the "editor" segment and inserting after that instead
+                            if (sep >= 0 && fileName.AsSpan(0, sep).Equals("editor", StringComparison.OrdinalIgnoreCase))
+                                sep = fileName.IndexOfAny(['/', '\\'], sep + 1);
+
+                            if (sep >= 0)
+                                fileName = Path.Combine(fileName[..sep], "DayZ", fileName[(sep + 1)..]);
+                        }
+
+                        expectedFiles.Add(Path.GetFullPath(Path.Combine(destination!, pbo.Prefix ?? string.Empty, fileName)));
                     }
-
-                    expectedFiles.Add(Path.GetFullPath(Path.Combine(destination!, pbo.Prefix ?? string.Empty, fileName)));
                 }
-            }
 
-            // scope cleanup to unique root prefix directories (first path segment of each PBO prefix)
-            // so that stale files from reorganised or removed PBOs under the same root are also caught
-            var prefixDirs = pbos
-                .Select(pbo =>
+                // scope cleanup to unique root prefix directories (first path segment of each PBO prefix)
+                // so that stale files from reorganised or removed PBOs under the same root are also caught
+                var prefixDirs = pbos
+                    .Select(pbo =>
+                    {
+                        var prefix = pbo.Prefix ?? string.Empty;
+                        var root = prefix.Split(['/', '\\'], 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? prefix;
+                        return Path.GetFullPath(Path.Combine(destination!, root));
+                    })
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Where(Directory.Exists)
+                    .ToList();
+
+                // snapshot existing files to compute add/remove diff
+                var existingFiles = prefixDirs
+                    .SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                // find files within prefix directories that are no longer produced by any PBO
+                var filesToDelete = existingFiles
+                    .Where(f => !expectedFiles.Contains(f))
+                    .ToList();
+
+                filesDeleted = filesToDelete.Count;
+                filesAdded = expectedFiles.Count(f => !existingFiles.Contains(f));
+
+                var cleanTask = ctx.AddTask("Clean up old files", maxValue: Math.Max(filesToDelete.Count, 1));
+
+                foreach (var file in filesToDelete)
                 {
-                    var prefix = pbo.Prefix ?? string.Empty;
-                    var root = prefix.Split(['/', '\\'], 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? prefix;
-                    return Path.GetFullPath(Path.Combine(destination!, root));
-                })
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Where(Directory.Exists)
-                .ToList();
+                    if (cancellationToken.IsCancellationRequested)
+                        return;
 
-            // snapshot existing files to compute add/remove diff
-            var existingFiles = prefixDirs
-                .SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            // find files within prefix directories that are no longer produced by any PBO
-            var filesToDelete = existingFiles
-                .Where(f => !expectedFiles.Contains(f))
-                .ToList();
-
-            filesDeleted = filesToDelete.Count;
-            filesAdded = expectedFiles.Count(f => !existingFiles.Contains(f));
-
-            var cleanTask = ctx.AddTask("Clean up old files", maxValue: Math.Max(filesToDelete.Count, 1));
-
-            foreach (var file in filesToDelete)
-            {
-                try
-                {
-                    File.Delete(file);
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch (IOException ex)
+                    {
+                        cleanupError = $"Could not delete [grey]{file}[/]: {ex.Message}";
+                        return;
+                    }
+                    cleanTask.Increment(1);
                 }
-                catch (IOException ex)
-                {
-                    cleanupError = $"Could not delete [grey]{file}[/]: {ex.Message}";
-                    return;
-                }
-                cleanTask.Increment(1);
-            }
 
-            if (filesToDelete.Count == 0)
-                cleanTask.Increment(1);
+                if (filesToDelete.Count == 0)
+                    cleanTask.Increment(1);
 
-            // remove subdirectories left empty within prefix directories
-            foreach (var prefixDir in prefixDirs)
-                DeleteEmptyDirectories(prefixDir);
+                // remove subdirectories left empty within prefix directories
+                foreach (var prefixDir in prefixDirs)
+                    DeleteEmptyDirectories(prefixDir);
 
-            var pboTasks = pbos.Select(pbo => (pbo, task: tasks.First(x => x.Description == pbo.FileName)));
-            var parallelism = parallel > 1 ? parallel : pbos.Count;
+                var pboTasks = pbos.Select(pbo => (pbo, task: tasks.First(x => x.Description == pbo.FileName)));
+                var parallelism = parallel > 1 ? parallel : pbos.Count;
 
-            pboTasks
-                .AsParallel()
-                .WithDegreeOfParallelism(parallelism)
-                .ForAll(pboTask =>
-                {
-                    var (pbo, task) = pboTask;
-                    ExtractFiles(pbo, task, destination!, exts, isExclude, flatScripts);
-                    pbo.Dispose();
-                });
-        });
+                pboTasks
+                    .AsParallel()
+                    .WithDegreeOfParallelism(parallelism)
+                    .WithCancellation(cancellationToken)
+                    .ForAll(pboTask =>
+                    {
+                        var (pbo, task) = pboTask;
+                        ExtractFiles(pbo, task, destination!, exts, isExclude, flatScripts, cancellationToken);
+                        pbo.Dispose();
+                    });
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            stopWatch.Stop();
+            Warning("User cancelled the operation.");
+            return 1;
+        }
 
         stopWatch.Stop();
 
@@ -336,7 +349,7 @@ internal static class ExtractDayZCommand
         }
     }
 
-    private static void ExtractFiles(PBO pbo, ProgressTask task, string destination, string[]? exts, bool exclude, bool flatScripts)
+    private static void ExtractFiles(PBO pbo, ProgressTask task, string destination, string[]? exts, bool exclude, bool flatScripts, CancellationToken cancellationToken = default)
     {
         if (task.IsIndeterminate)
             task.IsIndeterminate(false);
@@ -349,6 +362,8 @@ internal static class ExtractDayZCommand
 
         foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (!ShouldExclude(file.FileName, exts, exclude))
                 PBO.ExtractFile(file, path, injectSubDir);
 
