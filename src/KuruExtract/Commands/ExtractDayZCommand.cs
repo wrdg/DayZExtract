@@ -75,12 +75,26 @@ internal static class ExtractDayZCommand
 
             if (mgr.IsInstalled)
             {
+                Exception? updateException = null;
+
                 AnsiConsole.Status()
                     .Spinner(Spinner.Known.Dots2)
                     .Start("Checking for updates...", (_) =>
                     {
-                        info = mgr.CheckForUpdates();
+                        try
+                        {
+                            info = mgr.CheckForUpdates();
+                        }
+                        catch (Exception ex)
+                        {
+                            updateException = ex;
+                        }
                     });
+
+                if (updateException != null)
+                {
+                    Warning($"Failed to fetch updates: {Markup.Escape(updateException.Message)}\n");
+                }
 
                 if (info != null)
                 {
@@ -480,7 +494,7 @@ internal static class ExtractDayZCommand
         AnsiConsole.WriteLine();
     }
 
-    private static void PauseIfAttended()
+    internal static void PauseIfAttended()
     {
         if (OperatingSystem.IsWindows() && !_unattended)
         {
