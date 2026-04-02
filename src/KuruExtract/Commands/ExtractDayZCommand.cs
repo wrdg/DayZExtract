@@ -13,6 +13,8 @@ using Velopack.Sources;
 namespace KuruExtract.Commands;
 internal static class ExtractDayZCommand
 {
+    private static bool _unattended;
+
     /// <summary>
     /// Extract game content from DayZ PBO archives.
     /// </summary>
@@ -35,9 +37,14 @@ internal static class ExtractDayZCommand
         bool flatScripts = false,
         CancellationToken cancellationToken = default)
     {
+        _unattended = unattended;
+
         if (string.IsNullOrWhiteSpace(destination))
         {
-            destination = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "dayz-extract");
+            destination = OperatingSystem.IsWindows()
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents", "DayZ Projects")
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "dayzprojects");
+
             Directory.CreateDirectory(destination);
         }
 
@@ -58,7 +65,7 @@ internal static class ExtractDayZCommand
         if (gameInstallPath == null)
             return Error("Unable to locate game installation path.");
 
-        if (!unattended)
+        if (!_unattended)
         {
             if (OperatingSystem.IsWindows())
                 PromptLegacyUninstall();
@@ -109,8 +116,7 @@ internal static class ExtractDayZCommand
             if (!Directory.Exists(destination))
             {
                 Console.WriteLine();
-                Error("Destination directory does not exist.");
-                return 1;
+                return Error("Destination directory does not exist.");
             }
 
             if (promptExperimental && !experimental && GamePath.Experimental != null)
@@ -250,6 +256,7 @@ internal static class ExtractDayZCommand
         {
             stopWatch.Stop();
             Warning("User cancelled the operation.");
+            PauseIfAttended();
             return 1;
         }
 
@@ -269,15 +276,8 @@ internal static class ExtractDayZCommand
 
         AnsiConsole.MarkupLine($"\n[green]+{filesAdded:N0}[/] added [red]-{filesDeleted:N0}[/] removed");
         AnsiConsole.MarkupLine($"Total size extracted [yellow]{FormatBytes(totalBytes)}[/]");
-        
 
-        if (OperatingSystem.IsWindows())
-        {
-            if (unattended) return 0;
-            AnsiConsole.Write("\nPress enter to exit...");
-            while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
-        }
-
+        PauseIfAttended();
         return 0;
     }
 
@@ -480,9 +480,19 @@ internal static class ExtractDayZCommand
         AnsiConsole.WriteLine();
     }
 
+    private static void PauseIfAttended()
+    {
+        if (OperatingSystem.IsWindows() && !_unattended)
+        {
+            AnsiConsole.Write("\nPress enter to exit...");
+            while (Console.ReadKey(true).Key != ConsoleKey.Enter);
+        }
+    }
+
     private static int Error(string message)
     {
         AnsiConsole.MarkupLine($"[red]ERROR:[/] {message}");
+        PauseIfAttended();
         return 1;
     }
 
