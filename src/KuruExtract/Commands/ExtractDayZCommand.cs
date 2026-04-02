@@ -68,7 +68,7 @@ internal static class ExtractDayZCommand
                 return Error("Unable to locate game installation path.");
 
             Warning("Unable to locate game installation path.\n");
-            gameInstallPath = AnsiConsole.Ask<string>("Game installation path");
+            gameInstallPath = AnsiConsole.Ask<string>("Game installation path:");
 
             if (!Directory.Exists(gameInstallPath))
                 return Error("Game installation path does not exist.");
