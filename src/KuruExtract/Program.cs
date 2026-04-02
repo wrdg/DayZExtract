@@ -18,7 +18,9 @@ public class Program
 #if DEBUG
             args = [@"P:\", "-u"];
 #else
-            args = OperatingSystem.IsWindows() ? [@"P:\"] : ["--help"];
+            args = OperatingSystem.IsWindows() 
+                ? (Directory.Exists(@"P:\") ? [@"P:\"] : []) // check if P:\ exist first
+                : ["--help"]; // other OS
 #endif
         }
 
