@@ -63,14 +63,20 @@ internal static class ExtractDayZCommand
             if (OperatingSystem.IsWindows())
                 PromptLegacyUninstall();
 
+            UpdateInfo? info = null;
             var mgr = new UpdateManager(new GithubSource(Constants.UpdateUrl, null, true));
+
             if (mgr.IsInstalled)
             {
-                var info = mgr.CheckForUpdates();
+                AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots2)
+                    .Start("Checking for updates...", (_) =>
+                    {
+                        info = mgr.CheckForUpdates();
+                    });
 
                 if (info != null)
                 {
-                    
                     Info($"An update is available v{info.TargetFullRelease.Version}");
                     if (!info.TargetFullRelease.Version.IsPrerelease)
                     {
