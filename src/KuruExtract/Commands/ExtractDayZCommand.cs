@@ -39,41 +39,6 @@ internal static class ExtractDayZCommand
     {
         _unattended = unattended;
 
-        if (string.IsNullOrWhiteSpace(destination))
-        {
-            destination = OperatingSystem.IsWindows()
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents", "DayZ Projects")
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "dayzprojects");
-
-            Directory.CreateDirectory(destination);
-        }
-
-        var includePatterns = ParsePatterns(includeExtensions);
-        var excludePatterns = ParsePatterns(excludeExtensions);
-
-        if (includePatterns != null && excludePatterns != null)
-            return Error("You may only specify include or exclude, not both.");
-
-        var promptExperimental = false;
-        if (string.IsNullOrEmpty(gameInstallPath))
-        {
-            promptExperimental = true;
-            SteamLibrary.FetchGames();
-            gameInstallPath = experimental ? GamePath.Experimental : GamePath.Stable;
-        }
-
-        if (gameInstallPath == null)
-        {
-            if (_unattended)
-                return Error("Unable to locate game installation path.");
-
-            Warning("Unable to locate game installation path.\n");
-            gameInstallPath = AnsiConsole.Ask<string>("Game installation path:");
-
-            if (!Directory.Exists(gameInstallPath))
-                return Error("Game installation path does not exist.");
-        }
-
         if (!_unattended)
         {
             if (OperatingSystem.IsWindows())
@@ -126,7 +91,45 @@ internal static class ExtractDayZCommand
                     }
                 }
             }
+        }
 
+        if (string.IsNullOrWhiteSpace(destination))
+        {
+            destination = OperatingSystem.IsWindows()
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents", "DayZ Projects")
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "dayzprojects");
+
+            Directory.CreateDirectory(destination);
+        }
+
+        var includePatterns = ParsePatterns(includeExtensions);
+        var excludePatterns = ParsePatterns(excludeExtensions);
+
+        if (includePatterns != null && excludePatterns != null)
+            return Error("You may only specify include or exclude, not both.");
+
+        var promptExperimental = false;
+        if (string.IsNullOrEmpty(gameInstallPath))
+        {
+            promptExperimental = true;
+            SteamLibrary.FetchGames();
+            gameInstallPath = experimental ? GamePath.Experimental : GamePath.Stable;
+        }
+
+        if (gameInstallPath == null)
+        {
+            if (_unattended)
+                return Error("Unable to locate game installation path.");
+
+            Warning("Unable to locate game installation path.\n");
+            gameInstallPath = AnsiConsole.Ask<string>("Game installation path:");
+
+            if (!Directory.Exists(gameInstallPath))
+                return Error("Game installation path does not exist.");
+        }
+
+        if (!_unattended)
+        {
             if (includeExtensions != null)
                 Info($"Including only: [yellow]{includeExtensions}[/]\n");
             else if (excludeExtensions != null)
