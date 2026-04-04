@@ -536,7 +536,9 @@ internal static class ExtractDayZCommand
     {
         if (exts == null) return false;
 
-        fileName = fileName.Replace("config.bin", "config.cpp");
+        // only allocate if actually a config.bin file
+        if (fileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase))
+            fileName = string.Concat(fileName.AsSpan(0, fileName.Length - 10), "config.cpp");
 
         return exclude
             ? exts.Contains(fileName, ExtensionComparer)
