@@ -197,40 +197,9 @@ internal sealed class PBO : IDisposable
         entry.CopyTo(targetFile);
     }
 
-    public static void ExtractFiles(IEnumerable<IPBOFileEntry> entries, string target)
-    {
-        foreach (var entry in entries)
-        {
-            ExtractFile(entry, target);
-        }
-    }
-
-    public void ExtractAllFiles(string directory)
-    {
-        ExtractFiles(Files, Path.Combine(directory, Prefix ?? string.Empty));
-    }
-
-    public MemoryStream GetFileEntryStream(FileEntry entry)
+    internal MemoryStream GetFileEntryStream(FileEntry entry)
     {
         return new MemoryStream(GetFileData(entry), false);
-    }
-
-    public IEnumerable<MemoryStream> GetFileEntryStreams(IEnumerable<FileEntry> entries, bool keepStreamOpen = false)
-    {
-        foreach (var entry in entries)
-        {
-            if (entry.DataSize <= 0)
-                continue;
-
-            yield return new MemoryStream(GetFileData(entry), false);
-        }
-
-        if (!keepStreamOpen)
-        {
-            _pboFileStream?.Dispose();
-            _pboFileStream = null;
-            _reader = null;
-        }
     }
 
     public void Dispose()
