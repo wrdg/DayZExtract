@@ -3,7 +3,7 @@ using Microsoft.Win32;
 using System.Text;
 
 namespace KuruExtract.Steam;
-public class SteamLibrary
+public static class SteamLibrary
 {
     public static string? InstallPath { get; } = FindInstallPath();
 
