@@ -578,8 +578,14 @@ internal static class ExtractDayZCommand
 
         foreach (var lnkPath in lnkPaths)
         {
-            try { Interop.ShellShortcut.Create(lnkPath, exePath, string.Empty); }
-            catch { }
+            try
+            {
+                Interop.ShellShortcut.Create(lnkPath, exePath, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                Warning($"Failed to create shortcut [grey]{lnkPath}[/]: {Markup.Escape(ex.Message)}\n");
+            }
         }
     }
 }
