@@ -2,38 +2,32 @@ using KuruExtract.RV.IO;
 using System.Text;
 
 namespace KuruExtract.RV.PBO;
-internal sealed class FileEntry
+
+internal readonly record struct FileEntry(
+    string FileName,
+    int CompressedMagic,
+    int UncompressedSize,
+    int StartOffset,
+    int TimeStamp,
+    int DataSize)
 {
-    public string FileName { get; set; } = string.Empty;
+    public static readonly int VersionMagic    = BitConverter.ToInt32(Encoding.ASCII.GetBytes("sreV"), 0); // Vers
+    public static readonly int CompressionMagic = BitConverter.ToInt32(Encoding.ASCII.GetBytes("srpC"), 0); // Cprs
+    public static readonly int EncryptionMagic  = BitConverter.ToInt32(Encoding.ASCII.GetBytes("rcnE"), 0); // Encr
 
-    public int CompressedMagic { get; set; }
-
-    public int UncompressedSize { get; set; }
-
-    public int StartOffset { get; set; }
-
-    public int TimeStamp { get; set; }
-
-    public int DataSize { get; set; }
-
-    public static readonly int VersionMagic = BitConverter.ToInt32(Encoding.ASCII.GetBytes("sreV"), 0); //Vers
-    public static readonly int CompressionMagic = BitConverter.ToInt32(Encoding.ASCII.GetBytes("srpC"), 0); //Cprs
-    public static readonly int EncryptionMagic = BitConverter.ToInt32(Encoding.ASCII.GetBytes("rcnE"), 0); //Encr
-
-    public FileEntry(RVBinaryReader input)
-        => Read(input);
-
-    private void Read(RVBinaryReader input)
+    // The PBO header stores an offset field that we discard — we compute StartOffset
+    // ourselves from the running data position so that it's always accurate.
+    public static FileEntry Read(RVBinaryReader input, int startOffset)
     {
-        FileName = input.ReadAsciiz();
-        CompressedMagic = input.ReadInt32();
-        UncompressedSize = input.ReadInt32();
-        StartOffset = input.ReadInt32();
-        TimeStamp = input.ReadInt32();
-        DataSize = input.ReadInt32();
+        var fileName        = input.ReadAsciiz();
+        var compressedMagic = input.ReadInt32();
+        var uncompressedSize = input.ReadInt32();
+        _ = input.ReadInt32(); // stored offset — ignored, we use startOffset
+        var timeStamp = input.ReadInt32();
+        var dataSize  = input.ReadInt32();
+        return new(fileName, compressedMagic, uncompressedSize, startOffset, timeStamp, dataSize);
     }
 
-    public bool IsVersion => CompressedMagic == VersionMagic && TimeStamp == 0 && DataSize == 0;
-
+    public bool IsVersion   => CompressedMagic == VersionMagic && TimeStamp == 0 && DataSize == 0;
     public bool IsCompressed => CompressedMagic == CompressionMagic;
 }

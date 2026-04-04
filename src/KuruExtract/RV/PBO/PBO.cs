@@ -51,10 +51,7 @@ internal sealed class PBO : IDisposable
         FileEntry pboEntry;
         do
         {
-            pboEntry = new FileEntry(input)
-            {
-                StartOffset = curOffset
-            };
+            pboEntry = FileEntry.Read(input, curOffset);
 
             curOffset += pboEntry.DataSize;
 
