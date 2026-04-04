@@ -9,31 +9,26 @@ internal sealed class ParamClass : ParamEntry
 
     public List<ParamEntry> Entries { get; private set; } = new List<ParamEntry>(20);
 
-    public ParamClass(string name, string baseclass, IEnumerable<ParamEntry> entries)
+    private ParamClass() { }
+
+    // reads a nested class entry, name and a pointer to the body are both in the stream
+    internal static ParamClass Read(RVBinaryReader input)
     {
-        BaseClassName = baseclass;
-        Name = name;
-        Entries = [.. entries];
-    }
-
-    public ParamClass(string name, IEnumerable<ParamEntry> entries) : this(name, "", entries) { }
-
-    public ParamClass(string name, params ParamEntry[] entries) : this(name, (IEnumerable<ParamEntry>)entries) { }
-
-    public ParamClass(RVBinaryReader input)
-    {
-        Name = input.ReadAsciiz();
+        var result = new ParamClass { Name = input.ReadAsciiz() };
         var offset = input.ReadUInt32();
         var oldPos = input.Position;
         input.Position = offset;
-        ReadCore(input);
+        result.ReadCore(input);
         input.Position = oldPos;
+        return result;
     }
 
-    public ParamClass(RVBinaryReader input, string fileName)
+    // reads the file root class, body starts at the current stream position, name is supplied externally
+    internal static ParamClass ReadRoot(RVBinaryReader input, string name)
     {
-        Name = fileName;
-        ReadCore(input);
+        var result = new ParamClass { Name = name };
+        result.ReadCore(input);
+        return result;
     }
 
     public ParamClass? GetClass(string name)

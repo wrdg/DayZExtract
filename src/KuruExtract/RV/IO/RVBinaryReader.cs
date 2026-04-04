@@ -44,6 +44,9 @@ public sealed class RVBinaryReader : BinaryReader
 
     public byte[] ReadLZSS(uint expectedSize)
     {
+        // RV only compresses blocks >= 1024 bytes. smaller blocks are
+        // stored verbatim even when the packing method is marked as LZSS, so we
+        // read them as raw bytes rather than attempting decompression
         if (expectedSize < 1024)
             return ReadBytes((int)expectedSize);
 

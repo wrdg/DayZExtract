@@ -30,7 +30,7 @@ internal sealed class ParamFile
         var version = input.ReadInt32();
         var offsetToEnums = input.ReadInt32();
 
-        Root = new ParamClass(input, "rootClass");
+        Root = ParamClass.ReadRoot(input, "rootClass");
 
         input.Position = offsetToEnums;
         var nEnumValues = input.ReadInt32();

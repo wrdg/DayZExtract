@@ -18,7 +18,7 @@ internal abstract class ParamEntry
 
         return entryType switch
         {
-            EntryType.Class => new ParamClass(input),
+            EntryType.Class => ParamClass.Read(input),
             EntryType.Array => new ParamArray(input),
             EntryType.Value => new ParamValue(input),
             EntryType.ClassDecl => new ParamExternClass(input),
