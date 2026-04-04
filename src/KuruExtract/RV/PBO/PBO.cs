@@ -102,7 +102,7 @@ internal sealed class PBO : IDisposable
             else
             {
                 if (!entry.IsCompressed)
-                    throw new Exception("Unexpected packingMethod");
+                    throw new InvalidDataException("Unexpected packingMethod");
 
                 bytes = _reader.ReadLZSS((uint)entry.UncompressedSize);
             }
@@ -142,7 +142,7 @@ internal sealed class PBO : IDisposable
             else
             {
                 if (!entry.IsCompressed)
-                    throw new Exception("Unexpected packingMethod");
+                    throw new InvalidDataException("Unexpected packingMethod");
 
                 int size = entry.UncompressedSize;
                 var buf = ArrayPool<byte>.Shared.Rent(size);
