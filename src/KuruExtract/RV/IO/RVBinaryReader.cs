@@ -2,7 +2,7 @@
 using System.Text;
 
 namespace KuruExtract.RV.IO;
-public class RVBinaryReader : BinaryReader
+public sealed class RVBinaryReader : BinaryReader
 {
     public long Position
     {
@@ -30,7 +30,7 @@ public class RVBinaryReader : BinaryReader
             else
             {
                 // filename exceeded 256 chars — fall back to StringBuilder
-                var sb = new StringBuilder(512);
+                var sb = new StringBuilder(buffer.Length + 256);
                 sb.Append(buffer);
                 sb.Append(ch);
                 while ((ch = (char)ReadByte()) != 0)
