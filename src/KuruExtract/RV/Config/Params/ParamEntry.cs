@@ -3,7 +3,7 @@
 namespace KuruExtract.RV.Config;
 internal abstract class ParamEntry
 {
-    public string Name { get; protected set; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
 
     private static readonly string[] IndentStrings = Enumerable.Range(0, 16)
         .Select(i => new string(' ', i * 4))
