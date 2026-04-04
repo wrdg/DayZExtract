@@ -2,7 +2,7 @@
 using System.Text;
 
 namespace KuruExtract.RV.IO;
-public sealed class RVBinaryReader : BinaryReader
+internal sealed class RVBinaryReader : BinaryReader
 {
     public long Position
     {

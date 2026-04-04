@@ -1,6 +1,6 @@
 ﻿namespace KuruExtract.RV.PBO;
 
-public interface IPBOFileEntry
+internal interface IPBOFileEntry
 {
     string FileName { get; }
     int Size { get; }
