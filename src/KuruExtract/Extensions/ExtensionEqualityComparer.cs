@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace KuruExtract.RV;
+namespace KuruExtract.Extensions;
 
 internal sealed class ExtensionEqualityComparer : IEqualityComparer<string>
 {

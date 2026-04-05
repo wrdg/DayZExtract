@@ -1,5 +1,5 @@
 using ConsoleAppFramework;
-using KuruExtract.RV;
+using KuruExtract.Extensions;
 using KuruExtract.RV.PBO;
 using KuruExtract.Steam;
 using Microsoft.Win32;
