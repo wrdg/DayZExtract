@@ -6,6 +6,8 @@ using Velopack;
 namespace KuruExtract;
 public class Program
 {
+    internal static bool Unattended;
+
     public static int Main(string[] args)
     {
         VelopackApp.Build().Run();
@@ -16,7 +18,7 @@ public class Program
         if (args.Length < 1)
         {
 #if DEBUG
-            args = [@"P:\", "-u"];
+            args = [@"P:\"];
 #else
             args = OperatingSystem.IsWindows() 
                 ? (Directory.Exists(@"P:\") ? [@"P:\"] : []) // check if P:\ exist first
@@ -41,10 +43,25 @@ public class Program
         {
             AnsiConsole.MarkupLine($"[red]UNHANDLED EXCEPTION:[/] {Markup.Escape(ex.Message)}");
             AnsiConsole.MarkupLine($"[grey]{Markup.Escape(ex.StackTrace ?? string.Empty)}[/]");
-            ExtractDayZCommand.PauseIfAttended();
-            return 1;
+            Environment.ExitCode = 1;
+        }
+        finally
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            PauseIfAttended();
         }
 
         return Environment.ExitCode;
+    }
+
+    private static void PauseIfAttended()
+    {
+        if (OperatingSystem.IsWindows() && !Unattended)
+        {
+            AnsiConsole.Write("\nPress enter to exit...");
+            while (Console.ReadKey(true).Key != ConsoleKey.Enter) ;
+        }
     }
 }

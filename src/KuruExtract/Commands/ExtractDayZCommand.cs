@@ -13,8 +13,6 @@ using Velopack.Sources;
 namespace KuruExtract.Commands;
 internal static class ExtractDayZCommand
 {
-    private static bool _unattended;
-
     /// <summary>
     /// Extract game content from DayZ PBO archives.
     /// </summary>
@@ -37,9 +35,9 @@ internal static class ExtractDayZCommand
         bool flatScripts = false,
         CancellationToken cancellationToken = default)
     {
-        _unattended = unattended;
+        Program.Unattended = unattended;
 
-        if (!_unattended)
+        if (!unattended)
         {
             UpdateInfo? info = null;
             var mgr = new UpdateManager(new GithubSource(Constants.UpdateUrl, null, true));
@@ -118,7 +116,7 @@ internal static class ExtractDayZCommand
 
         if (gameInstallPath == null)
         {
-            if (_unattended)
+            if (unattended)
                 return Error("Unable to locate game installation path.");
 
             Warning("Unable to locate game installation path.\n");
@@ -128,7 +126,7 @@ internal static class ExtractDayZCommand
                 return Error("Game installation path does not exist.");
         }
 
-        if (!_unattended)
+        if (!unattended)
         {
             if (includeExtensions != null)
                 Info($"Including only: [yellow]{includeExtensions}[/]\n");
@@ -282,7 +280,6 @@ internal static class ExtractDayZCommand
         {
             stopWatch.Stop();
             Warning("User cancelled the operation.");
-            PauseIfAttended();
             return 1;
         }
 
@@ -303,7 +300,6 @@ internal static class ExtractDayZCommand
         AnsiConsole.MarkupLine($"\n[green]+{filesAdded:N0}[/] added [red]-{filesDeleted:N0}[/] removed");
         AnsiConsole.MarkupLine($"Total size extracted [yellow]{FormatBytes(totalBytes)}[/]");
 
-        PauseIfAttended();
         return 0;
     }
 
@@ -506,19 +502,9 @@ internal static class ExtractDayZCommand
         AnsiConsole.WriteLine();
     }
 
-    internal static void PauseIfAttended()
-    {
-        if (OperatingSystem.IsWindows() && !_unattended)
-        {
-            AnsiConsole.Write("\nPress enter to exit...");
-            while (Console.ReadKey(true).Key != ConsoleKey.Enter);
-        }
-    }
-
     private static int Error(string message)
     {
         AnsiConsole.MarkupLine($"[red]ERROR:[/] {message}");
-        PauseIfAttended();
         return 1;
     }
 
