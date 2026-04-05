@@ -21,17 +21,19 @@ internal sealed class VdfNode
 
 internal static class VdfParser
 {
-    public static bool TryParse(string text, out VdfNode? node)
+    public static bool TryParse(string text, out VdfNode? node, out string? error)
     {
         node = null;
+        error = null;
         try
         {
             int pos = 0;
             node = new VdfNode(ParseChildren(text, ref pos, isRoot: true));
             return true;
         }
-        catch
+        catch (FormatException ex)
         {
+            error = ex.Message;
             return false;
         }
     }

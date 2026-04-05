@@ -45,7 +45,7 @@ internal static class SteamLibrary
         var libraryAppPath = Path.Combine(libraryDirectory, "common");
         foreach (var file in Directory.EnumerateFiles(libraryDirectory, "*.acf"))
         {
-            if (!VdfParser.TryParse(File.ReadAllText(file, Encoding.UTF8), out var doc))
+            if (!VdfParser.TryParse(File.ReadAllText(file, Encoding.UTF8), out var doc, out _))
                 continue;
 
             // ACF files have a single top-level key ("AppState") wrapping all properties
@@ -90,8 +90,14 @@ internal static class SteamLibrary
         if (!File.Exists(vdfPath))
             vdfPath = Path.Combine(steamapps, "libraryfolders.vdf");
 
-        if (!File.Exists(vdfPath) || !VdfParser.TryParse(File.ReadAllText(vdfPath, Encoding.UTF8), out var doc))
+        if (!File.Exists(vdfPath))
             return libraryDirectories;
+
+        if (!VdfParser.TryParse(File.ReadAllText(vdfPath, Encoding.UTF8), out var doc, out var vdfError))
+        {
+            Console.Error.WriteLine($"WARN: Failed to parse {vdfPath}: {vdfError}");
+            return libraryDirectories;
+        }
 
         var lf = doc!["libraryfolders"];
         if (lf is null)
