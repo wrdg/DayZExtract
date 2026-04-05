@@ -26,8 +26,8 @@ internal sealed class ParamFile
             throw new FormatException();
         }
 
-        var ofpVersion = input.ReadInt32();
-        var version = input.ReadInt32();
+        _ = input.ReadInt32();
+        _ = input.ReadInt32();
         var offsetToEnums = input.ReadInt32();
 
         Root = ParamClass.ReadRoot(input, "rootClass");
