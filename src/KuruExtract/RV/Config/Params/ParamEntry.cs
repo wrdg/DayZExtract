@@ -5,9 +5,7 @@ internal abstract class ParamEntry
 {
     public string Name { get; init; } = string.Empty;
 
-    private static readonly string[] IndentStrings = Enumerable.Range(0, 16)
-        .Select(i => new string(' ', i * 4))
-        .ToArray();
+    private static readonly string[] IndentStrings = [.. Enumerable.Range(0, 16).Select(i => new string(' ', i * 4))];
 
     protected static string Indent(int level) =>
         (uint)level < (uint)IndentStrings.Length ? IndentStrings[level] : new string(' ', level * 4);
