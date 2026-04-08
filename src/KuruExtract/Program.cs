@@ -1,7 +1,9 @@
 using ConsoleAppFramework;
 using KuruExtract.Commands;
 using Spectre.Console;
+using System.Text;
 using Velopack;
+using Velopack.Locators;
 
 namespace KuruExtract;
 public class Program
@@ -10,7 +12,15 @@ public class Program
 
     public static int Main(string[] args)
     {
-        VelopackApp.Build().Run();
+        var app = VelopackApp.Build();
+
+        if (OperatingSystem.IsWindows())
+        {
+            app.OnAfterInstallFastCallback(_ => UpdatePathEnvironment(true));
+            app.OnBeforeUninstallFastCallback(_ => UpdatePathEnvironment(false));
+        }
+            
+        app.Run();
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Console.CursorVisible = true;
 
@@ -63,5 +73,38 @@ public class Program
             AnsiConsole.Write("\nPress enter to exit...");
             while (Console.ReadKey(true).Key != ConsoleKey.Enter) ;
         }
+    }
+
+    private static void UpdatePathEnvironment(bool add)
+    {
+        var rootAppDir = VelopackLocator.CreateDefaultForPlatform().AppContentDir;
+
+        if (rootAppDir is null)
+            return;
+
+        var target = EnvironmentVariableTarget.User;
+
+        var oldPath = Environment.GetEnvironmentVariable("PATH", target) ?? string.Empty;
+
+        var builder = new StringBuilder(oldPath.Length);
+
+        foreach (var segment in oldPath.AsSpan().Split(';'))
+        {
+            ReadOnlySpan<char> entry = oldPath.AsSpan()[segment];
+
+            if (entry.IsEmpty || entry.Equals(rootAppDir.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (builder.Length > 0) builder.Append(';');
+            builder.Append(entry);
+        }
+
+        if (add)
+        {
+            if (builder.Length > 0) builder.Append(';');
+            builder.Append(rootAppDir);
+        }
+
+        Environment.SetEnvironmentVariable("PATH", builder.ToString(), target);
     }
 }
