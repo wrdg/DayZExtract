@@ -78,7 +78,8 @@ internal static class ExtractDayZCommand
                         Warning("This update is a pre-release.\n");
                     }
 
-                    if (AnsiConsole.Confirm("Would you like to update?"))
+                    if (AnsiConsole.ConfirmAsync("Would you like to update?", cancellationToken: cancellationToken)
+                        .GetAwaiter().GetResult())
                     {
                         mgr.DownloadUpdates(info);
                         mgr.ApplyUpdatesAndRestart(info);
@@ -120,7 +121,8 @@ internal static class ExtractDayZCommand
                 return Error("Unable to locate game installation path.");
 
             Warning("Unable to locate game installation path.\n");
-            gameInstallPath = AnsiConsole.Ask<string>("Game installation path:");
+            gameInstallPath = AnsiConsole.AskAsync<string>("Game installation path:", cancellationToken)
+                .GetAwaiter().GetResult();
 
             if (!Directory.Exists(gameInstallPath))
                 return Error("Game installation path does not exist.");
@@ -133,9 +135,10 @@ internal static class ExtractDayZCommand
             else if (excludeExtensions != null)
                 Info($"Excluding: [yellow]{excludeExtensions}[/]\n");
 
-            destination = AnsiConsole.Prompt(
+            destination = AnsiConsole.PromptAsync(
                 new TextPrompt<string>("Destination path")
-                    .DefaultValue(destination));
+                    .DefaultValue(destination), cancellationToken)
+                    .GetAwaiter().GetResult();
                     
             if (!Directory.Exists(destination))
             {
@@ -145,7 +148,9 @@ internal static class ExtractDayZCommand
 
             if (promptExperimental && !experimental && GamePath.Experimental != null)
             {
-                experimental = AnsiConsole.Confirm("Extract experimental", false);
+                experimental = AnsiConsole.ConfirmAsync("Extract experimental", false, cancellationToken)
+                    .GetAwaiter().GetResult();
+
                 if (experimental) gameInstallPath = GamePath.Experimental;
             }
         }
@@ -541,7 +546,7 @@ internal static class ExtractDayZCommand
 
         Warning("Legacy installer is detected. It is recommended to uninstall it.\n");
 
-        if (!AnsiConsole.Confirm("Uninstall now?")) return;
+        if (!AnsiConsole.ConfirmAsync("Uninstall now?").GetAwaiter().GetResult()) return;
 
         Process.Start(new ProcessStartInfo("msiexec.exe", $"/x {Constants.LegacyProductCode} /qb")
         {
