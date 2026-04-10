@@ -161,6 +161,12 @@ internal static class ExtractDayZCommand
         var exts = excludePatterns ?? includePatterns;
         var isExclude = excludePatterns != null;
 
+        if (exts != null)
+        {
+            foreach (var pbo in pbos)
+                pbo.Files.RemoveAll(f => ShouldExclude(f.FileName, exts, isExclude));
+        }
+
         var progress = AnsiConsole.Progress()
             .HideCompleted(true)
             .Columns([
@@ -190,12 +196,7 @@ internal static class ExtractDayZCommand
                 {
                     foreach (var file in pbo.Files)
                     {
-                        if (ShouldExclude(file.FileName, exts, isExclude))
-                            continue;
-
-                        var fileName = file.FileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase)
-                            ? Path.ChangeExtension(file.FileName, ".cpp")
-                            : file.FileName;
+                        var fileName = file.FileName;
 
                         // Mirror the injectSubDir logic in PBO.ExtractFile so expected paths match what extraction produces.
                         if (!flatScripts && IsScriptsPBO(pbo.Prefix))
@@ -276,7 +277,7 @@ internal static class ExtractDayZCommand
                     .ForAll(pboTask =>
                     {
                         var (pbo, task) = pboTask;
-                        ExtractFiles(pbo, task, destination!, exts, isExclude, flatScripts, cancellationToken);
+                        ExtractFiles(pbo, task, destination!, flatScripts, cancellationToken);
                         pbo.Dispose();
                     });
             });
@@ -295,7 +296,7 @@ internal static class ExtractDayZCommand
 
         Console.SetCursorPosition(0, 0);
 
-        var extStats = CollectExtensionStats(pbos, exts, isExclude);
+        var extStats = CollectExtensionStats(pbos);
         RenderBreakdownChart(extStats);
 
         var totalBytes = extStats.Values.Sum(x => x.Bytes);
@@ -376,7 +377,7 @@ internal static class ExtractDayZCommand
         }
     }
 
-    private static void ExtractFiles(PBO pbo, ProgressTask task, string destination, string[]? exts, bool exclude, bool flatScripts, CancellationToken cancellationToken = default)
+    private static void ExtractFiles(PBO pbo, ProgressTask task, string destination, bool flatScripts, CancellationToken cancellationToken = default)
     {
         if (task.IsIndeterminate)
             task.IsIndeterminate(false);
@@ -390,31 +391,21 @@ internal static class ExtractDayZCommand
         foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            if (!ShouldExclude(file.FileName, exts, exclude))
-                PBO.ExtractFile(file, path, injectSubDir);
-
+            PBO.ExtractFile(file, path, injectSubDir);
             task.Increment(1);
         }
     }
 
     private readonly record struct ExtensionStat(long Count, long Bytes);
 
-    private static Dictionary<string, ExtensionStat> CollectExtensionStats(List<PBO> pbos, string[]? exts, bool isExclude)
+    private static Dictionary<string, ExtensionStat> CollectExtensionStats(List<PBO> pbos)
     {
         var stats = new Dictionary<string, ExtensionStat>(StringComparer.OrdinalIgnoreCase);
         foreach (var pbo in pbos)
         {
             foreach (var file in pbo.Files)
             {
-                if (ShouldExclude(file.FileName, exts, isExclude))
-                    continue;
-
-                var name = file.FileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase)
-                    ? Path.ChangeExtension(file.FileName, ".cpp")
-                    : file.FileName;
-
-                var ext = Path.GetExtension(name);
+                var ext = Path.GetExtension(file.FileName);
                 if (string.IsNullOrEmpty(ext)) ext = "(no ext)";
 
                 stats.TryGetValue(ext, out var current);
@@ -523,18 +514,8 @@ internal static class ExtractDayZCommand
         AnsiConsole.MarkupLine($"[blue]INFO:[/] {message}");
     }
 
-    private static bool ShouldExclude(string fileName, string[]? exts, bool exclude)
-    {
-        if (exts == null) return false;
-
-        // only allocate if actually a config.bin file
-        if (fileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase))
-            fileName = string.Concat(fileName.AsSpan(0, fileName.Length - 10), "config.cpp");
-
-        return exclude
-            ? exts.Contains(fileName, ExtensionComparer)
-            : !exts.Contains(fileName, ExtensionComparer);
-    }
+    private static bool ShouldExclude(string fileName, string[] exts, bool exclude) =>
+        exclude ? exts.Contains(fileName, ExtensionComparer) : !exts.Contains(fileName, ExtensionComparer);
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static void PromptLegacyUninstall()

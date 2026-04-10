@@ -159,9 +159,7 @@ internal sealed class PBO : IDisposable
     public static void ExtractFile(IPBOFileEntry entry, string target, string? injectSubDir = null)
     {
         string fileName = entry.FileName;
-        bool isConfigBin = fileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase);
-        if (isConfigBin)
-            fileName = Path.ChangeExtension(fileName, ".cpp");
+        bool isConfigBin = entry.IsConfigBin;
 
         // splice in the injectSubDir after the first path segment
         if (injectSubDir != null)
