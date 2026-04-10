@@ -119,7 +119,7 @@ internal sealed class PBO : IDisposable
 
             if (entry.CompressedMagic == 0)
             {
-                var buf = ArrayPool<byte>.Shared.Rent(81920);
+                var buf = ArrayPool<byte>.Shared.Rent(20_480);
                 try
                 {
                     int remaining = entry.DataSize;
