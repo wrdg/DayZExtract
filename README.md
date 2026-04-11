@@ -40,6 +40,7 @@ DayZExtract.exe [destination] [options]
 | `--exclude-extensions` | `-e` | Comma-separated list of extensions to exclude |
 | `--parallel` | `-p` | Maximum number of PBOs to extract simultaneously |
 | `--flat-scripts` | `-f` | Extract scripts without a `DayZ` subfolder per module |
+| `--include-unofficial-pbos` | `-b` | Also extract PBOs without a `.dayz.bisign` signature (e.g. mods) |
 
 ### Examples
 
