@@ -25,7 +25,7 @@ internal static class ExtractDayZCommand
     /// <param name="excludeExtensions">-e, Comma-separated list of extensions to be excluded from extraction.</param>
     /// <param name="parallel">-p, Maximum number of PBOs to extract simultaneously.</param>
     /// <param name="flatScripts">-f, Extract scripts flat (no DayZ subfolder per module).</param>
-    /// <param name="includeUnofficialPbos">-b, Also extract PBOs without a .dayz.bisign signature.</param>
+    /// <param name="includeUnofficialPbos">-m, Also extract PBOs without a .dayz.bisign signature.</param>
     public static int Execute(
         [Argument] string? destination = null,
         bool unattended = false,
