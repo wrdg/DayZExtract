@@ -85,7 +85,7 @@ internal static class SteamLibrary
 
         libraryDirectories.Add(steamapps);
 
-        // Newer Steam stores libraryfolders.vdf under config/, older installs use steamapps/
+        // newer Steam stores libraryfolders.vdf under config/, older installs use steamapps/
         var vdfPath = Path.Combine(steamInstallPath, "config", "libraryfolders.vdf");
         if (!File.Exists(vdfPath))
             vdfPath = Path.Combine(steamapps, "libraryfolders.vdf");

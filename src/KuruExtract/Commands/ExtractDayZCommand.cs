@@ -1,6 +1,7 @@
 using ConsoleAppFramework;
 using KuruExtract.Extensions;
 using KuruExtract.RV.PBO;
+using KuruExtract.RV.Signatures;
 using KuruExtract.Steam;
 using Microsoft.Win32;
 using Spectre.Console;
@@ -24,6 +25,7 @@ internal static class ExtractDayZCommand
     /// <param name="excludeExtensions">-e, Comma-separated list of extensions to be excluded from extraction.</param>
     /// <param name="parallel">-p, Maximum number of PBOs to extract simultaneously.</param>
     /// <param name="flatScripts">-f, Extract scripts flat (no DayZ subfolder per module).</param>
+    /// <param name="includeUnofficialPbos">-b, Also extract PBOs without a .dayz.bisign signature.</param>
     public static int Execute(
         [Argument] string? destination = null,
         bool unattended = false,
@@ -33,6 +35,7 @@ internal static class ExtractDayZCommand
         string? excludeExtensions = null,
         int parallel = 0,
         bool flatScripts = false,
+        bool includeUnofficialPbos = false,
         CancellationToken cancellationToken = default)
     {
         Program.Unattended = unattended;
@@ -157,7 +160,8 @@ internal static class ExtractDayZCommand
 
         var stopWatch = Stopwatch.StartNew();
 
-        var pbos = GetPBOs(gameInstallPath).ToList();
+        var dayZKey = BiPublicKey.Read(new MemoryStream(Constants.DayZPublicKey.ToArray(), writable: false));
+        var pbos = GetPBOs(gameInstallPath, includeUnofficialPbos, dayZKey).ToList();
         var exts = excludePatterns ?? includePatterns;
         var isExclude = excludePatterns != null;
 
@@ -198,8 +202,8 @@ internal static class ExtractDayZCommand
                     {
                         var fileName = file.FileName;
 
-                        // Mirror the injectSubDir logic in PBO.ExtractFile so expected paths match what extraction produces.
-                        if (!flatScripts && IsScriptsPBO(pbo.Prefix))
+                        // mirrors the injectSubDir logic in ExtractFile so expected paths match
+                        if (!flatScripts && IsScriptsPBO(pbo))
                         {
                             var sep = fileName.IndexOfAny(['/', '\\']);
 
@@ -318,13 +322,9 @@ internal static class ExtractDayZCommand
             Directory.Delete(path);
     }
 
-    private static bool IsScriptsPBO(string? prefix)
-    {
-        if (prefix == null) return false;
-        var firstSep = prefix.IndexOfAny(['/', '\\']);
-        var firstSegment = firstSep < 0 ? prefix : prefix.AsSpan(0, firstSep);
-        return firstSegment.Equals("scripts", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsScriptsPBO(PBO pbo) =>
+        pbo.IsOfficial &&
+        string.Equals(pbo.Prefix, "scripts", StringComparison.OrdinalIgnoreCase);
 
     private static string[]? ParsePatterns(string? patterns)
     {
@@ -349,7 +349,7 @@ internal static class ExtractDayZCommand
         return elapsed.Minutes > 0 ? $"{hours}, {Plural(elapsed.Minutes, "minute")}" : hours;
     }
 
-    private static IEnumerable<PBO> GetPBOs(string root)
+    private static IEnumerable<PBO> GetPBOs(string root, bool includeUnofficialPbos, BiPublicKey dayZKey)
     {
         if (!Directory.Exists(root))
             yield break;
@@ -363,18 +363,30 @@ internal static class ExtractDayZCommand
 
             foreach (var pboPath in Directory.EnumerateFiles(dir, "*.pbo", SearchOption.TopDirectoryOnly))
             {
-                // only return PBOs that have a dayz signature
-                if (File.Exists(pboPath + ".dayz.bisign"))
-                    yield return new PBO(pboPath);
+                var isOfficial = IsSignedByKey(pboPath + ".dayz.bisign", dayZKey);
+                if (includeUnofficialPbos || isOfficial)
+                    yield return new PBO(pboPath) { IsOfficial = isOfficial };
             }
 
             foreach (var subDir in Directory.EnumerateDirectories(dir))
             {
-                // ignore junction and symbolic links
-                if (!new DirectoryInfo(subDir).Attributes.HasFlag(FileAttributes.ReparsePoint))
+                // ignore junction and symbolic links if official only
+                if (includeUnofficialPbos || !new DirectoryInfo(subDir).Attributes.HasFlag(FileAttributes.ReparsePoint))
                     dirs.Push(subDir);
             }
         }
+    }
+
+    private static bool IsSignedByKey(string bisignPath, BiPublicKey expectedKey)
+    {
+        if (!File.Exists(bisignPath)) return false;
+        try
+        {
+            using var stream = File.OpenRead(bisignPath);
+            var sign = BiSign.Read(stream);
+            return sign.PublicKey.Matches(expectedKey);
+        }
+        catch { return false; }
     }
 
     private static void ExtractFiles(PBO pbo, ProgressTask task, string destination, bool flatScripts, CancellationToken cancellationToken = default)
@@ -386,7 +398,7 @@ internal static class ExtractDayZCommand
             task.StartTask();
 
         var path = Path.Combine(destination, pbo.Prefix ?? string.Empty);
-        var injectSubDir = !flatScripts && IsScriptsPBO(pbo.Prefix) ? "DayZ" : null;
+        var injectSubDir = !flatScripts && IsScriptsPBO(pbo) ? "DayZ" : null;
 
         foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
         {

@@ -31,6 +31,7 @@ internal sealed class PBO : IDisposable
     public int DataOffset { get; private set; }
     public string? Prefix { get; private set; }
     public string FileName => Path.GetFileName(PBOFilePath);
+    public bool IsOfficial { get; init; }
 
     public PBO(string fileName, bool keepStreamOpen = false)
     {
@@ -108,8 +109,7 @@ internal sealed class PBO : IDisposable
         return bytes;
     }
 
-    // Streams the file data directly to `destination` using a pooled buffer,
-    // avoiding a full-file heap allocation for each entry.
+    // streams file data using a pooled buffer to avoid allocating the full entry on the heap
     internal void CopyFileTo(FileEntry entry, Stream destination)
     {
         lock (this)

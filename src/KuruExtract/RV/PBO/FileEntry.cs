@@ -15,19 +15,18 @@ internal readonly record struct FileEntry(
     public static readonly int CompressionMagic = BitConverter.ToInt32(Encoding.ASCII.GetBytes("srpC"), 0); // Cprs
     public static readonly int EncryptionMagic  = BitConverter.ToInt32(Encoding.ASCII.GetBytes("rcnE"), 0); // Encr
 
-    // The PBO header stores an offset field that we discard — we compute StartOffset
-    // ourselves from the running data position so that it's always accurate.
+    // the stored offset field is discarded - we compute startOffset from the running data position
     public static FileEntry Read(RVBinaryReader input, int startOffset)
     {
         var fileName        = input.ReadAsciiz();
         var compressedMagic = input.ReadInt32();
         var uncompressedSize = input.ReadInt32();
-        _ = input.ReadInt32(); // stored offset — ignored, we use startOffset
+        _ = input.ReadInt32(); // stored offset - ignored, we use startOffset
         var timeStamp = input.ReadInt32();
         var dataSize  = input.ReadInt32();
         return new(fileName, compressedMagic, uncompressedSize, startOffset, timeStamp, dataSize);
     }
 
-    public bool IsVersion   => CompressedMagic == VersionMagic && TimeStamp == 0 && DataSize == 0;
+    public bool IsVersion => CompressedMagic == VersionMagic && TimeStamp == 0 && DataSize == 0;
     public bool IsCompressed => CompressedMagic == CompressionMagic;
 }

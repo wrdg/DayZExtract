@@ -24,10 +24,7 @@ internal static class LZSS
 
         try
         {
-            // AggressiveInlining: this is called 1-3x per decode iteration. The compiler lowers
-            // capturing local functions to a hidden static with ref parameters (no heap allocation),
-            // so the JIT can inline it. The hint overrides the branch count penalty and folds the
-            // hot path (bufPos < bufLen) directly into the loop, eliminating the call overhead
+            // inlined: called 1-3x per decode iteration, avoids local function call overhead
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             int NextByte()
             {
