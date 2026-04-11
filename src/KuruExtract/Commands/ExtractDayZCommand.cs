@@ -25,7 +25,7 @@ internal static class ExtractDayZCommand
     /// <param name="excludeExtensions">-e, Comma-separated list of extensions to be excluded from extraction.</param>
     /// <param name="parallel">-p, Maximum number of PBOs to extract simultaneously.</param>
     /// <param name="flatScripts">-f, Extract scripts flat (no DayZ subfolder per module).</param>
-    /// <param name="includeUnofficialPbos">-m, Also extract PBOs without a .dayz.bisign signature.</param>
+    /// <param name="includeUnofficialPbos">-m, Also extract PBOs without a `.dayz.bisign` signature (e.g. mods).</param>
     public static int Execute(
         [Argument] string? destination = null,
         bool unattended = false,
@@ -131,23 +131,15 @@ internal static class ExtractDayZCommand
                 return Error("Game installation path does not exist.");
         }
 
+        var dayZKey = BiPublicKey.Read(new MemoryStream(Constants.DayZPublicKey.ToArray(), writable: false));
+        var pbos = GetPBOs(gameInstallPath, includeUnofficialPbos, dayZKey).ToList();
+
         if (!unattended)
         {
             if (includeExtensions != null)
                 Info($"Including only: [yellow]{includeExtensions}[/]\n");
             else if (excludeExtensions != null)
                 Info($"Excluding: [yellow]{excludeExtensions}[/]\n");
-
-            destination = AnsiConsole.PromptAsync(
-                new TextPrompt<string>("Destination path")
-                    .DefaultValue(destination), cancellationToken)
-                    .GetAwaiter().GetResult();
-                    
-            if (!Directory.Exists(destination))
-            {
-                Console.WriteLine();
-                return Error("Destination directory does not exist.");
-            }
 
             if (promptExperimental && !experimental && GamePath.Experimental != null)
             {
@@ -158,10 +150,33 @@ internal static class ExtractDayZCommand
             }
         }
 
-        var stopWatch = Stopwatch.StartNew();
+        if (!unattended && includeUnofficialPbos)
+        {
+            var unofficialPbos = pbos.Where(p => !p.IsOfficial).ToList();
+            if (unofficialPbos.Count > 0)
+            {
+                Info($"Including [yellow]{unofficialPbos.Count}[/] unofficial PBO(s):");
+                foreach (var pbo in unofficialPbos)
+                    AnsiConsole.MarkupLine($"  [grey]{Markup.Escape(pbo.PBOFilePath)}[/]");
+                Console.WriteLine();
+            }
+        }
 
-        var dayZKey = BiPublicKey.Read(new MemoryStream(Constants.DayZPublicKey.ToArray(), writable: false));
-        var pbos = GetPBOs(gameInstallPath, includeUnofficialPbos, dayZKey).ToList();
+        if (!unattended)
+        {
+            destination = AnsiConsole.PromptAsync(
+                new TextPrompt<string>("Destination path")
+                    .DefaultValue(destination), cancellationToken)
+                    .GetAwaiter().GetResult();
+
+            if (!Directory.Exists(destination))
+            {
+                Console.WriteLine();
+                return Error("Destination directory does not exist.");
+            }
+        }
+
+        var stopWatch = Stopwatch.StartNew();
         var exts = excludePatterns ?? includePatterns;
         var isExclude = excludePatterns != null;
 
