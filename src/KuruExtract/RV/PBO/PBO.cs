@@ -32,6 +32,7 @@ internal sealed class PBO : IDisposable
     public string? Prefix { get; private set; }
     public string FileName => Path.GetFileName(PBOFilePath);
     public bool IsOfficial { get; init; }
+    public bool IsObfuscated { get; private set; }
 
     public PBO(string fileName, bool keepStreamOpen = false)
     {
@@ -70,6 +71,8 @@ internal sealed class PBO : IDisposable
 
                     if (name == "prefix")
                         Prefix = value;
+                    else if (name == "obfuscated")
+                        IsObfuscated = true;
                 }
                 while (name != string.Empty);
             }

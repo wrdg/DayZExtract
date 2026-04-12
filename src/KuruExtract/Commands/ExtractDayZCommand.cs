@@ -25,7 +25,7 @@ internal static class ExtractDayZCommand
     /// <param name="excludeExtensions">-e, Comma-separated list of extensions to be excluded from extraction.</param>
     /// <param name="parallel">-p, Maximum number of PBOs to extract simultaneously.</param>
     /// <param name="flatScripts">-f, Extract scripts flat (no DayZ subfolder per module).</param>
-    /// <param name="includeUnofficialPbos">-m, Also extract PBOs without a `.dayz.bisign` signature (e.g. mods).</param>
+    /// <param name="includeUnofficialPbos">-m, Comma-separated list of mod directories to include alongside official PBOs. Supports @Name (maps to !Workshop\@Name), relative paths from the game install, and absolute paths.</param>
     public static int Execute(
         [Argument] string? destination = null,
         bool unattended = false,
@@ -35,7 +35,7 @@ internal static class ExtractDayZCommand
         string? excludeExtensions = null,
         int parallel = 0,
         bool flatScripts = false,
-        bool includeUnofficialPbos = false,
+        string? includeUnofficialPbos = null,
         CancellationToken cancellationToken = default)
     {
         Program.Unattended = unattended;
@@ -131,9 +131,6 @@ internal static class ExtractDayZCommand
                 return Error("Game installation path does not exist.");
         }
 
-        var dayZKey = BiPublicKey.Read(new MemoryStream(Constants.DayZPublicKey.ToArray(), writable: false));
-        var pbos = GetPBOs(gameInstallPath, includeUnofficialPbos, dayZKey).ToList();
-
         if (!unattended)
         {
             if (includeExtensions != null)
@@ -146,11 +143,15 @@ internal static class ExtractDayZCommand
                 experimental = AnsiConsole.ConfirmAsync("Extract experimental", false, cancellationToken)
                     .GetAwaiter().GetResult();
 
-                if (experimental) gameInstallPath = GamePath.Experimental;
+                if (experimental) gameInstallPath = GamePath.Experimental!;
             }
         }
 
-        if (!unattended && includeUnofficialPbos)
+        var unofficialDirs = ResolveUnofficialDirs(gameInstallPath, includeUnofficialPbos);
+        var dayZKey = BiPublicKey.Read(new MemoryStream(Constants.DayZPublicKey.ToArray(), writable: false));
+        var pbos = GetPBOs(gameInstallPath, unofficialDirs, dayZKey).ToList();
+
+        if (!unattended && unofficialDirs.Length > 0)
         {
             var unofficialPbos = pbos.Where(p => !p.IsOfficial).ToList();
             if (unofficialPbos.Count > 0)
@@ -364,7 +365,37 @@ internal static class ExtractDayZCommand
         return elapsed.Minutes > 0 ? $"{hours}, {Plural(elapsed.Minutes, "minute")}" : hours;
     }
 
-    private static IEnumerable<PBO> GetPBOs(string root, bool includeUnofficialPbos, BiPublicKey dayZKey)
+    private static string[] ResolveUnofficialDirs(string gameInstallPath, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return [];
+        return [.. value.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(entry =>
+            {
+                if (Path.IsPathRooted(entry))
+                    return entry;
+                if (entry.StartsWith('@'))
+                    return FindModDirectory(gameInstallPath, entry) ?? Path.Combine(gameInstallPath, entry);
+                return Path.Combine(gameInstallPath, entry);
+            })];
+    }
+
+    private static string? FindModDirectory(string gameInstallPath, string modName)
+    {
+        var direct = Path.Combine(gameInstallPath, modName);
+        if (Directory.Exists(direct))
+            return direct;
+
+        foreach (var subDir in Directory.EnumerateDirectories(gameInstallPath))
+        {
+            var candidate = Path.Combine(subDir, modName);
+            if (Directory.Exists(candidate))
+                return candidate;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<PBO> GetPBOs(string root, string[] unofficialDirs, BiPublicKey dayZKey)
     {
         if (!Directory.Exists(root))
             yield break;
@@ -378,16 +409,28 @@ internal static class ExtractDayZCommand
 
             foreach (var pboPath in Directory.EnumerateFiles(dir, "*.pbo", SearchOption.TopDirectoryOnly))
             {
-                var isOfficial = IsSignedByKey(pboPath + ".dayz.bisign", dayZKey);
-                if (includeUnofficialPbos || isOfficial)
-                    yield return new PBO(pboPath) { IsOfficial = isOfficial };
+                if (IsSignedByKey(pboPath + ".dayz.bisign", dayZKey))
+                    yield return new PBO(pboPath) { IsOfficial = true };
             }
 
             foreach (var subDir in Directory.EnumerateDirectories(dir))
             {
-                // ignore junction and symbolic links if official only
-                if (includeUnofficialPbos || !new DirectoryInfo(subDir).Attributes.HasFlag(FileAttributes.ReparsePoint))
+                // ignore junctions and symlinks within the game install
+                if (!new DirectoryInfo(subDir).Attributes.HasFlag(FileAttributes.ReparsePoint))
                     dirs.Push(subDir);
+            }
+        }
+
+        foreach (var unofficialDir in unofficialDirs)
+        {
+            if (!Directory.Exists(unofficialDir))
+                continue;
+
+            foreach (var pboPath in Directory.EnumerateFiles(unofficialDir, "*.pbo", SearchOption.AllDirectories))
+            {
+                var pbo = new PBO(pboPath);
+                if (!pbo.IsObfuscated)
+                    yield return pbo;
             }
         }
     }
