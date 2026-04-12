@@ -9,6 +9,6 @@ internal sealed class GamePath
 
     private static IReadOnlyList<string> GetPaths(int appId) =>
         SteamLibrary.Games.TryGetValue(appId, out var games)
-            ? games.Select(g => g.InstallPath).OfType<string>().ToList()
+            ? games.Select(g => g.InstallPath!).ToList()
             : [];
 }

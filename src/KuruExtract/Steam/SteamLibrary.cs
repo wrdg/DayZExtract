@@ -25,14 +25,15 @@ internal static class SteamLibrary
         return candidates.FirstOrDefault(Directory.Exists);
     }
 
-    public static Dictionary<int, List<SteamGame>> Games { get; } = [];
+    private static readonly Dictionary<int, List<SteamGame>> _games = [];
+    public static IReadOnlyDictionary<int, List<SteamGame>> Games => _games;
 
     public static void FetchGames()
     {
         foreach (var game in GetLibraryDirectories().SelectMany(GetGamesFromLibrary))
         {
-            if (!Games.TryGetValue(game.AppId, out var list))
-                Games[game.AppId] = list = [];
+            if (!_games.TryGetValue(game.AppId, out var list))
+                _games[game.AppId] = list = [];
 
             list.Add(game);
         }
