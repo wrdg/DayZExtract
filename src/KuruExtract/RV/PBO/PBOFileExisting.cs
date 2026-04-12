@@ -9,12 +9,14 @@ internal sealed class PBOFileExisting : IPBOFileEntry
     {
         _fileEntry = fileEntry;
         _pbo = pbo;
-        IsConfigBin = fileEntry.FileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase);
-        FileName = IsConfigBin ? Path.ChangeExtension(fileEntry.FileName, ".cpp") : fileEntry.FileName;
+        bool isConfigBin = fileEntry.FileName.EndsWith("config.bin", StringComparison.OrdinalIgnoreCase);
+        IsParamFile = isConfigBin || fileEntry.FileName.EndsWith(".rvmat", StringComparison.OrdinalIgnoreCase);
+        FileName = isConfigBin ? Path.ChangeExtension(fileEntry.FileName, ".cpp") : fileEntry.FileName;
     }
 
     public string FileName { get; }
-    public bool IsConfigBin { get; }
+
+    public bool IsParamFile { get; }
 
     public int TimeStamp => _fileEntry.TimeStamp;
 

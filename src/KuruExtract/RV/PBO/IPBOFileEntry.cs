@@ -3,7 +3,7 @@
 internal interface IPBOFileEntry
 {
     string FileName { get; }
-    bool IsConfigBin { get; }
+    bool IsParamFile { get; }
     int Size { get; }
     int TimeStamp { get; }
     bool IsCompressed { get; }

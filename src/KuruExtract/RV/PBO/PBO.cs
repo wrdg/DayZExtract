@@ -162,7 +162,7 @@ internal sealed class PBO : IDisposable
     public static void ExtractFile(IPBOFileEntry entry, string target, string? injectSubDir = null)
     {
         string fileName = entry.FileName;
-        bool isConfigBin = entry.IsConfigBin;
+        bool isParamFile = entry.IsParamFile;
 
         // splice in the injectSubDir after the first path segment
         if (injectSubDir != null)
@@ -186,7 +186,7 @@ internal sealed class PBO : IDisposable
 
         using var targetFile = File.Create(path);
 
-        if (isConfigBin)
+        if (isParamFile)
         {
             using var source = entry.OpenRead();
             var param = new ParamFile(source);
