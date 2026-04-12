@@ -28,7 +28,7 @@ public class Program
         if (args.Length < 1)
         {
 #if DEBUG
-            args = [@"P:\"];
+            args = [@"P:\", "-m", "@CF", "-i", "*.cpp,*.c"];
 #else
             args = OperatingSystem.IsWindows() 
                 ? (Directory.Exists(@"P:\") ? [@"P:\"] : []) // check if P:\ exist first

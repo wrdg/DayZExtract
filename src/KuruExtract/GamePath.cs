@@ -3,7 +3,12 @@
 namespace KuruExtract;
 internal sealed class GamePath
 {
-    public static string? Stable => SteamLibrary.Games.GetValueOrDefault(221100)?.InstallPath;
+    public static IReadOnlyList<string> Stable => GetPaths(221100);
 
-    public static string? Experimental => SteamLibrary.Games.GetValueOrDefault(1024020)?.InstallPath;
+    public static IReadOnlyList<string> Experimental => GetPaths(1024020);
+
+    private static IReadOnlyList<string> GetPaths(int appId) =>
+        SteamLibrary.Games.TryGetValue(appId, out var games)
+            ? games.Select(g => g.InstallPath).OfType<string>().ToList()
+            : [];
 }

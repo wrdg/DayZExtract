@@ -115,7 +115,19 @@ internal static class ExtractDayZCommand
         {
             promptExperimental = true;
             SteamLibrary.FetchGames();
-            gameInstallPath = experimental ? GamePath.Experimental : GamePath.Stable;
+            var installPaths = experimental ? GamePath.Experimental : GamePath.Stable;
+
+            gameInstallPath = installPaths.Count switch
+            {
+                0 => null,
+                1 => installPaths[0],
+                _ when unattended => installPaths[0],
+                _ => AnsiConsole.PromptAsync(
+                    new SelectionPrompt<string>()
+                        .Title("Multiple installations found:")
+                        .AddChoices(installPaths), cancellationToken)
+                    .GetAwaiter().GetResult()
+            };
         }
 
         if (gameInstallPath == null)
@@ -131,6 +143,10 @@ internal static class ExtractDayZCommand
                 return Error("Game installation path does not exist.");
         }
 
+        var unofficialDirs = ResolveUnofficialDirs(gameInstallPath, includeUnofficialPbos);
+        var dayZKey = BiPublicKey.Read(new MemoryStream(Constants.DayZPublicKey.ToArray(), writable: false));
+        var pbos = GetPBOs(gameInstallPath, unofficialDirs, dayZKey).ToList();
+
         if (!unattended)
         {
             if (includeExtensions != null)
@@ -138,33 +154,19 @@ internal static class ExtractDayZCommand
             else if (excludeExtensions != null)
                 Info($"Excluding: [yellow]{excludeExtensions}[/]\n");
 
-            if (promptExperimental && !experimental && GamePath.Experimental != null)
+            if (unofficialDirs.Length > 0)
             {
-                experimental = AnsiConsole.ConfirmAsync("Extract experimental", false, cancellationToken)
-                    .GetAwaiter().GetResult();
-
-                if (experimental) gameInstallPath = GamePath.Experimental!;
+                var unofficialPbos = pbos.Where(p => !p.IsOfficial).ToList();
+                if (unofficialPbos.Count > 0)
+                {
+                    var pboLabel = unofficialPbos.Count == 1 ? "unofficial PBO" : "unofficial PBOs";
+                    Info($"Including [yellow]{unofficialPbos.Count}[/] {pboLabel}:");
+                    foreach (var pbo in unofficialPbos)
+                        AnsiConsole.MarkupLine($"  [grey]{Markup.Escape(pbo.PBOFilePath)}[/]");
+                    Console.WriteLine();
+                }
             }
-        }
 
-        var unofficialDirs = ResolveUnofficialDirs(gameInstallPath, includeUnofficialPbos);
-        var dayZKey = BiPublicKey.Read(new MemoryStream(Constants.DayZPublicKey.ToArray(), writable: false));
-        var pbos = GetPBOs(gameInstallPath, unofficialDirs, dayZKey).ToList();
-
-        if (!unattended && unofficialDirs.Length > 0)
-        {
-            var unofficialPbos = pbos.Where(p => !p.IsOfficial).ToList();
-            if (unofficialPbos.Count > 0)
-            {
-                Info($"Including [yellow]{unofficialPbos.Count}[/] unofficial PBO(s):");
-                foreach (var pbo in unofficialPbos)
-                    AnsiConsole.MarkupLine($"  [grey]{Markup.Escape(pbo.PBOFilePath)}[/]");
-                Console.WriteLine();
-            }
-        }
-
-        if (!unattended)
-        {
             destination = AnsiConsole.PromptAsync(
                 new TextPrompt<string>("Destination path")
                     .DefaultValue(destination), cancellationToken)
@@ -174,6 +176,24 @@ internal static class ExtractDayZCommand
             {
                 Console.WriteLine();
                 return Error("Destination directory does not exist.");
+            }
+
+            var experimentalPaths = GamePath.Experimental;
+            if (promptExperimental && !experimental && experimentalPaths.Count > 0)
+            {
+                experimental = AnsiConsole.ConfirmAsync("Extract experimental", false, cancellationToken)
+                    .GetAwaiter().GetResult();
+
+                if (experimental)
+                {
+                    gameInstallPath = experimentalPaths.Count == 1
+                        ? experimentalPaths[0]
+                        : AnsiConsole.PromptAsync(
+                            new SelectionPrompt<string>()
+                                .Title("Multiple installations found:")
+                                .AddChoices(experimentalPaths), cancellationToken)
+                            .GetAwaiter().GetResult();
+                }
             }
         }
 

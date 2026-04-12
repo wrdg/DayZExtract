@@ -25,14 +25,16 @@ internal static class SteamLibrary
         return candidates.FirstOrDefault(Directory.Exists);
     }
 
-    public static Dictionary<int, SteamGame> Games { get; } = [];
+    public static Dictionary<int, List<SteamGame>> Games { get; } = [];
 
     public static void FetchGames()
     {
-        var gameLibraryDirectories = GetLibraryDirectories();
-        foreach (var game in gameLibraryDirectories.Select(GetGamesFromLibrary).SelectMany(games => games))
+        foreach (var game in GetLibraryDirectories().SelectMany(GetGamesFromLibrary))
         {
-            Games[game.AppId] = game;
+            if (!Games.TryGetValue(game.AppId, out var list))
+                Games[game.AppId] = list = [];
+
+            list.Add(game);
         }
     }
 
@@ -62,7 +64,7 @@ internal static class SteamLibrary
                 continue;
 
             var gameDirectory = Path.Combine(libraryAppPath, installDir).ResolvePath();
-            if (gameDirectory is null || games.Any(g => g.AppId == appId))
+            if (gameDirectory is null)
                 continue;
 
             games.Add(new SteamGame { AppId = appId, Name = name, InstallPath = gameDirectory });
