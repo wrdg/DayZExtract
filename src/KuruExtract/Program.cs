@@ -22,8 +22,6 @@ public class Program
             
         app.Run();
 
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => Console.CursorVisible = true;
-
         var originalArgs = args;
         if (args.Length < 1)
         {
