@@ -125,7 +125,7 @@ internal static class ExtractDayZCommand
                 _ when unattended => installPaths[0],
                 _ => AnsiConsole.PromptAsync(
                     new SelectionPrompt<string>()
-                        .Title("Multiple installations found:")
+                        .Title("[yellow]WARN:[/] Multiple installations found:")
                         .AddChoices(installPaths), cancellationToken)
                     .GetAwaiter().GetResult()
             };
@@ -188,7 +188,7 @@ internal static class ExtractDayZCommand
                         ? experimentalPaths[0]
                         : AnsiConsole.PromptAsync(
                             new SelectionPrompt<string>()
-                                .Title("Multiple installations found:")
+                                .Title("[yellow]WARN:[/] Multiple installations found:")
                                 .AddChoices(experimentalPaths), cancellationToken)
                             .GetAwaiter().GetResult();
 
