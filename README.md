@@ -40,7 +40,7 @@ DayZExtract.exe [destination] [options]
 | `--exclude-extensions` | `-e` | Comma-separated list of extensions to exclude |
 | `--parallel` | `-p` | Maximum number of PBOs to extract simultaneously |
 | `--flat-scripts` | `-f` | Extract scripts without a `DayZ` subfolder per module |
-| `--include-unofficial-pbos` | `-m` | Comma-separated list of mod directories to include (e.g. `@CF,@Mod`). Supports `@Name` (searches game install subdirectories), paths relative to the game install, and absolute paths |
+| `--include-unofficial-pbos` | `-m` | Comma-separated list of mod directories or individual `.pbo` files to include (e.g. `@CF,@Mod,path\to\file.pbo`). Supports `@Name` (searches game install subdirectories), paths relative to the game install, and absolute paths |
 
 ### Examples
 

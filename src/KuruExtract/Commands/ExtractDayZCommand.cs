@@ -25,7 +25,7 @@ internal static class ExtractDayZCommand
     /// <param name="excludeExtensions">-e, Comma-separated list of extensions to be excluded from extraction.</param>
     /// <param name="parallel">-p, Maximum number of PBOs to extract simultaneously.</param>
     /// <param name="flatScripts">-f, Extract scripts flat (no DayZ subfolder per module).</param>
-    /// <param name="includeUnofficialPbos">-m, Comma-separated list of mod directories to include alongside official PBOs. Supports @Name (searches game install subdirectories), relative paths from the game install, and absolute paths.</param>
+    /// <param name="includeUnofficialPbos">-m, Comma-separated list of mod directories or individual PBO files to include alongside official PBOs. Supports @Name (searches game install subdirectories), relative paths from the game install, and absolute paths.</param>
     public static int Execute(
         [Argument] string? destination = null,
         bool unattended = false,
@@ -420,13 +420,23 @@ internal static class ExtractDayZCommand
                 yield return new PBO(pboPath) { IsOfficial = true };
         }
 
-        foreach (var unofficialDir in unofficialDirs)
+        foreach (var entry in unofficialDirs)
         {
-            foreach (var pboPath in EnumeratePboPaths(unofficialDir))
+            if (entry.EndsWith(".pbo", StringComparison.OrdinalIgnoreCase))
             {
-                var pbo = new PBO(pboPath);
+                if (!File.Exists(entry)) continue;
+                var pbo = new PBO(entry);
                 if (!pbo.IsObfuscated)
                     yield return pbo;
+            }
+            else
+            {
+                foreach (var pboPath in EnumeratePboPaths(entry))
+                {
+                    var pbo = new PBO(pboPath);
+                    if (!pbo.IsObfuscated)
+                        yield return pbo;
+                }
             }
         }
     }
