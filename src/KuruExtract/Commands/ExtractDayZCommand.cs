@@ -321,6 +321,7 @@ internal static class ExtractDayZCommand
         catch (OperationCanceledException)
         {
             stopWatch.Stop();
+            Console.WriteLine();
             Warning("User cancelled the operation.");
             return 1;
         }
@@ -328,7 +329,10 @@ internal static class ExtractDayZCommand
         stopWatch.Stop();
 
         if (cleanupError != null)
+        {
+            Console.WriteLine();
             return Error(cleanupError);
+        }
 
         Console.WriteLine();
 
