@@ -5,6 +5,7 @@ using KuruExtract.RV.Signatures;
 using KuruExtract.Steam;
 using Microsoft.Win32;
 using Spectre.Console;
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -208,6 +209,7 @@ internal static class ExtractDayZCommand
         }
 
         var progress = AnsiConsole.Progress()
+            .AutoClear(true)
             .HideCompleted(true)
             .Columns([
                 new TaskDescriptionColumn(),
@@ -224,16 +226,6 @@ internal static class ExtractDayZCommand
         {
             progress.Start(ctx =>
             {
-                var pboTasks = new Dictionary<PBO, ProgressTask>(pbos.Count);
-
-                // setup tasks in reverse order
-                for (var i = pbos.Count - 1; i >= 0; i--)
-                {
-                    var pbo = pbos[i];
-                    var label = pbo.IsOfficial ? pbo.FileName : $"{pbo.FileName} ({pbo.Prefix})";
-                    pboTasks[pbo] = ctx.AddTask(label, false, pbo.Files.Count).IsIndeterminate();
-                }
-
                 // build the full set of destination paths that will be produced by extraction
                 var expectedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var pbo in pbos)
@@ -313,14 +305,16 @@ internal static class ExtractDayZCommand
 
                 var parallelism = parallel > 1 ? parallel : Environment.ProcessorCount;
 
-                pboTasks
+                Partitioner.Create(pbos, EnumerablePartitionerOptions.NoBuffering)
                     .AsParallel()
                     .WithDegreeOfParallelism(parallelism)
                     .WithCancellation(cancellationToken)
-                    .ForAll(pair =>
+                    .ForAll(pbo =>
                     {
-                        ExtractFiles(pair.Key, pair.Value, destination, flatScripts, cancellationToken);
-                        pair.Key.Dispose();
+                        var label = pbo.IsOfficial ? pbo.FileName : $"{pbo.FileName} ({pbo.Prefix})";
+                        var task = ctx.AddTask(label, maxValue: pbo.Files.Count);
+                        ExtractFiles(pbo, task, destination, flatScripts, cancellationToken);
+                        pbo.Dispose();
                     });
             });
         }
@@ -336,7 +330,7 @@ internal static class ExtractDayZCommand
         if (cleanupError != null)
             return Error(cleanupError);
 
-        Console.SetCursorPosition(0, 0);
+        Console.WriteLine();
 
         var extStats = CollectExtensionStats(pbos);
         RenderBreakdownChart(extStats);
@@ -478,12 +472,6 @@ internal static class ExtractDayZCommand
 
     private static void ExtractFiles(PBO pbo, ProgressTask task, string destination, bool flatScripts, CancellationToken cancellationToken = default)
     {
-        if (task.IsIndeterminate)
-            task.IsIndeterminate(false);
-
-        if (!task.IsStarted)
-            task.StartTask();
-
         var path = Path.Combine(destination, pbo.Prefix ?? string.Empty);
         var injectSubDir = !flatScripts && IsScriptsPBO(pbo) ? "DayZ" : null;
 
