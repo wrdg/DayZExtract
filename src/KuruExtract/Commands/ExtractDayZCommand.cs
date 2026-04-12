@@ -25,7 +25,7 @@ internal static class ExtractDayZCommand
     /// <param name="excludeExtensions">-e, Comma-separated list of extensions to be excluded from extraction.</param>
     /// <param name="parallel">-p, Maximum number of PBOs to extract simultaneously.</param>
     /// <param name="flatScripts">-f, Extract scripts flat (no DayZ subfolder per module).</param>
-    /// <param name="includeUnofficialPbos">-m, Comma-separated list of mod directories to include alongside official PBOs. Supports @Name (maps to !Workshop\@Name), relative paths from the game install, and absolute paths.</param>
+    /// <param name="includeUnofficialPbos">-m, Comma-separated list of mod directories to include alongside official PBOs. Supports @Name (searches game install subdirectories), relative paths from the game install, and absolute paths.</param>
     public static int Execute(
         [Argument] string? destination = null,
         bool unattended = false,
@@ -154,17 +154,14 @@ internal static class ExtractDayZCommand
             else if (excludeExtensions != null)
                 Info($"Excluding: [yellow]{excludeExtensions}[/]\n");
 
-            if (unofficialDirs.Length > 0)
+            var unofficialPbos = pbos.Where(p => !p.IsOfficial).ToList();
+            if (unofficialPbos.Count > 0)
             {
-                var unofficialPbos = pbos.Where(p => !p.IsOfficial).ToList();
-                if (unofficialPbos.Count > 0)
-                {
-                    var pboLabel = unofficialPbos.Count == 1 ? "unofficial PBO" : "unofficial PBOs";
-                    Info($"Including [yellow]{unofficialPbos.Count}[/] {pboLabel}:");
-                    foreach (var pbo in unofficialPbos)
-                        AnsiConsole.MarkupLine($"  [grey]{Markup.Escape(pbo.PBOFilePath)}[/]");
-                    Console.WriteLine();
-                }
+                var pboLabel = unofficialPbos.Count == 1 ? "unofficial PBO" : "unofficial PBOs";
+                Info($"Including [yellow]{unofficialPbos.Count}[/] {pboLabel}:");
+                foreach (var pbo in unofficialPbos)
+                    AnsiConsole.MarkupLine($"  [grey]{Markup.Escape(pbo.PBOFilePath)}[/]");
+                Console.WriteLine();
             }
 
             destination = AnsiConsole.PromptAsync(
@@ -193,6 +190,9 @@ internal static class ExtractDayZCommand
                                 .Title("Multiple installations found:")
                                 .AddChoices(experimentalPaths), cancellationToken)
                             .GetAwaiter().GetResult();
+
+                    unofficialDirs = ResolveUnofficialDirs(gameInstallPath, includeUnofficialPbos);
+                    pbos = [.. GetPBOs(gameInstallPath, unofficialDirs, dayZKey)];
                 }
             }
         }
@@ -311,7 +311,7 @@ internal static class ExtractDayZCommand
                 foreach (var prefixDir in prefixDirs)
                     DeleteEmptyDirectories(prefixDir);
 
-                var parallelism = parallel > 1 ? parallel : pbos.Count;
+                var parallelism = parallel > 1 ? parallel : Environment.ProcessorCount;
 
                 pboTasks
                     .AsParallel()
@@ -407,17 +407,32 @@ internal static class ExtractDayZCommand
         if (Directory.Exists(direct))
             return direct;
 
-        foreach (var subDir in Directory.EnumerateDirectories(gameInstallPath))
-        {
-            var candidate = Path.Combine(subDir, modName);
-            if (Directory.Exists(candidate))
-                return candidate;
-        }
-
-        return null;
+        return Directory.EnumerateDirectories(gameInstallPath)
+            .Select(subDir => Path.Combine(subDir, modName))
+            .FirstOrDefault(Directory.Exists);
     }
 
     private static IEnumerable<PBO> GetPBOs(string root, string[] unofficialDirs, BiPublicKey dayZKey)
+    {
+        foreach (var pboPath in EnumeratePboPaths(root))
+        {
+            if (IsSignedByKey(pboPath + ".dayz.bisign", dayZKey))
+                yield return new PBO(pboPath) { IsOfficial = true };
+        }
+
+        foreach (var unofficialDir in unofficialDirs)
+        {
+            foreach (var pboPath in EnumeratePboPaths(unofficialDir))
+            {
+                var pbo = new PBO(pboPath);
+                if (!pbo.IsObfuscated)
+                    yield return pbo;
+            }
+        }
+    }
+
+    // walks a directory tree skipping junctions and symlinks in subdirectories
+    private static IEnumerable<string> EnumeratePboPaths(string root)
     {
         if (!Directory.Exists(root))
             yield break;
@@ -430,36 +445,18 @@ internal static class ExtractDayZCommand
             var dir = dirs.Pop();
 
             foreach (var pboPath in Directory.EnumerateFiles(dir, "*.pbo", SearchOption.TopDirectoryOnly))
-            {
-                if (IsSignedByKey(pboPath + ".dayz.bisign", dayZKey))
-                    yield return new PBO(pboPath) { IsOfficial = true };
-            }
+                yield return pboPath;
 
             foreach (var subDir in Directory.EnumerateDirectories(dir))
             {
-                // ignore junctions and symlinks within the game install
-                if (!new DirectoryInfo(subDir).Attributes.HasFlag(FileAttributes.ReparsePoint))
+                if (!File.GetAttributes(subDir).HasFlag(FileAttributes.ReparsePoint))
                     dirs.Push(subDir);
-            }
-        }
-
-        foreach (var unofficialDir in unofficialDirs)
-        {
-            if (!Directory.Exists(unofficialDir))
-                continue;
-
-            foreach (var pboPath in Directory.EnumerateFiles(unofficialDir, "*.pbo", SearchOption.AllDirectories))
-            {
-                var pbo = new PBO(pboPath);
-                if (!pbo.IsObfuscated)
-                    yield return pbo;
             }
         }
     }
 
     private static bool IsSignedByKey(string bisignPath, BiPublicKey expectedKey)
     {
-        if (!File.Exists(bisignPath)) return false;
         try
         {
             using var stream = File.OpenRead(bisignPath);
