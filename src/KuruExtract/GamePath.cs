@@ -7,8 +7,8 @@ internal sealed class GamePath
 
     public static IReadOnlyList<string> Experimental => GetPaths(1024020);
 
-    private static IReadOnlyList<string> GetPaths(int appId) =>
+    private static List<string> GetPaths(int appId) =>
         SteamLibrary.Games.TryGetValue(appId, out var games)
-            ? games.Select(g => g.InstallPath!).ToList()
+            ? [.. games.Select(g => g.InstallPath!)]
             : [];
 }

@@ -247,7 +247,7 @@ internal static class ExtractDayZCommand
                                 fileName = Path.Combine(fileName[..sep], "DayZ", fileName[(sep + 1)..]);
                         }
 
-                        expectedFiles.Add(Path.GetFullPath(Path.Combine(destination!, pbo.Prefix ?? string.Empty, fileName)));
+                        expectedFiles.Add(Path.GetFullPath(Path.Combine(destination, pbo.Prefix ?? string.Empty, fileName)));
                     }
                 }
 
@@ -258,7 +258,7 @@ internal static class ExtractDayZCommand
                     {
                         var prefix = pbo.Prefix ?? string.Empty;
                         var root = prefix.Split(['/', '\\'], 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? prefix;
-                        return Path.GetFullPath(Path.Combine(destination!, root));
+                        return Path.GetFullPath(Path.Combine(destination, root));
                     })
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Where(Directory.Exists)
