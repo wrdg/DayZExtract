@@ -224,11 +224,15 @@ internal static class ExtractDayZCommand
         {
             progress.Start(ctx =>
             {
-                var tasks = new List<ProgressTask>();
+                var pboTasks = new Dictionary<PBO, ProgressTask>(pbos.Count);
 
                 // setup tasks in reverse order
                 for (var i = pbos.Count - 1; i >= 0; i--)
-                    tasks.Add(ctx.AddTask(pbos[i].FileName!, false, pbos[i].Files.Count).IsIndeterminate());
+                {
+                    var pbo = pbos[i];
+                    var label = pbo.IsOfficial ? pbo.FileName : $"{pbo.FileName} ({pbo.Prefix})";
+                    pboTasks[pbo] = ctx.AddTask(label, false, pbo.Files.Count).IsIndeterminate();
+                }
 
                 // build the full set of destination paths that will be produced by extraction
                 var expectedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -307,18 +311,16 @@ internal static class ExtractDayZCommand
                 foreach (var prefixDir in prefixDirs)
                     DeleteEmptyDirectories(prefixDir);
 
-                var pboTasks = pbos.Select(pbo => (pbo, task: tasks.First(x => x.Description == pbo.FileName)));
                 var parallelism = parallel > 1 ? parallel : pbos.Count;
 
                 pboTasks
                     .AsParallel()
                     .WithDegreeOfParallelism(parallelism)
                     .WithCancellation(cancellationToken)
-                    .ForAll(pboTask =>
+                    .ForAll(pair =>
                     {
-                        var (pbo, task) = pboTask;
-                        ExtractFiles(pbo, task, destination!, flatScripts, cancellationToken);
-                        pbo.Dispose();
+                        ExtractFiles(pair.Key, pair.Value, destination, flatScripts, cancellationToken);
+                        pair.Key.Dispose();
                     });
             });
         }
