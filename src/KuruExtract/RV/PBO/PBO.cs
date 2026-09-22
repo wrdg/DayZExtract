@@ -156,25 +156,11 @@ internal sealed class PBO : IDisposable
         }
     }
 
-    public static void ExtractFile(PBOFileExisting entry, string target, string? injectSubDir = null)
+    public static void ExtractFile(PBOFileExisting entry, string target)
     {
-        string fileName = entry.FileName;
         bool isParamFile = entry.IsParamFile;
 
-        // splice in the injectSubDir after the first path segment
-        if (injectSubDir != null)
-        {
-            var sep = fileName.IndexOfAny(['/', '\\']);
-
-            // handle editor/ paths by skipping the "editor" segment and inserting after that instead
-            if (sep >= 0 && fileName.AsSpan(0, sep).Equals("editor", StringComparison.OrdinalIgnoreCase))
-                sep = fileName.IndexOfAny(['/', '\\'], sep + 1);
-
-            if (sep >= 0)
-                fileName = Path.Combine(fileName[..sep], injectSubDir, fileName[(sep + 1)..]);
-        }
-
-        var path = Path.Combine(target, fileName);
+        var path = Path.Combine(target, entry.FileName);
         var parentDir = Path.GetDirectoryName(path);
         if (string.IsNullOrEmpty(parentDir))
             return;

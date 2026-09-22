@@ -25,7 +25,6 @@ internal static class ExtractDayZCommand
     /// <param name="includeExtensions">-i, Comma-separated list of extensions to be included in extraction.</param>
     /// <param name="excludeExtensions">-e, Comma-separated list of extensions to be excluded from extraction.</param>
     /// <param name="parallel">-p, Maximum number of PBOs to extract simultaneously.</param>
-    /// <param name="flatScripts">-f, Extract scripts flat (no DayZ subfolder per module).</param>
     /// <param name="includeUnofficialPbos">-m, Comma-separated list of mod directories or individual PBO files to include alongside official PBOs. Supports @Name (searches game install subdirectories), relative paths from the game install, and absolute paths.</param>
     public static int Execute(
         [Argument] string? destination = null,
@@ -35,7 +34,6 @@ internal static class ExtractDayZCommand
         string? includeExtensions = null,
         string? excludeExtensions = null,
         int parallel = 0,
-        bool flatScripts = false,
         string? includeUnofficialPbos = null,
         CancellationToken cancellationToken = default)
     {
@@ -231,24 +229,7 @@ internal static class ExtractDayZCommand
                 foreach (var pbo in pbos)
                 {
                     foreach (var file in pbo.Files)
-                    {
-                        var fileName = file.FileName;
-
-                        // mirrors the injectSubDir logic in ExtractFile so expected paths match
-                        if (!flatScripts && IsScriptsPBO(pbo))
-                        {
-                            var sep = fileName.IndexOfAny(['/', '\\']);
-
-                            // handle editor/ paths by skipping the "editor" segment and inserting after that instead
-                            if (sep >= 0 && fileName.AsSpan(0, sep).Equals("editor", StringComparison.OrdinalIgnoreCase))
-                                sep = fileName.IndexOfAny(['/', '\\'], sep + 1);
-
-                            if (sep >= 0)
-                                fileName = Path.Combine(fileName[..sep], "DayZ", fileName[(sep + 1)..]);
-                        }
-
-                        expectedFiles.Add(Path.GetFullPath(Path.Combine(destination, pbo.Prefix ?? string.Empty, fileName)));
-                    }
+                        expectedFiles.Add(Path.GetFullPath(Path.Combine(destination, pbo.Prefix ?? string.Empty, file.FileName)));
                 }
 
                 // scope cleanup to each PBO's stated prefix so files from unrelated mods
@@ -314,7 +295,7 @@ internal static class ExtractDayZCommand
                         var task = ctx.AddTask(label, maxValue: pbo.Files.Count);
                         try
                         {
-                            if (!ExtractFiles(pbo, task, destination, flatScripts, out var error, cancellationToken))
+                            if (!ExtractFiles(pbo, task, destination, out var error, cancellationToken))
                                 extractErrors.Add(error!);
                         }
                         finally
@@ -382,10 +363,6 @@ internal static class ExtractDayZCommand
         error = null;
         return true;
     }
-
-    private static bool IsScriptsPBO(PBO pbo) =>
-        pbo.IsOfficial &&
-        string.Equals(pbo.Prefix, "scripts", StringComparison.OrdinalIgnoreCase);
 
     private static string[]? ParsePatterns(string? patterns)
     {
@@ -501,17 +478,16 @@ internal static class ExtractDayZCommand
         catch { return false; }
     }
 
-    private static bool ExtractFiles(PBO pbo, ProgressTask task, string destination, bool flatScripts, out string? error, CancellationToken cancellationToken = default)
+    private static bool ExtractFiles(PBO pbo, ProgressTask task, string destination, out string? error, CancellationToken cancellationToken = default)
     {
         var path = Path.Combine(destination, pbo.Prefix ?? string.Empty);
-        var injectSubDir = !flatScripts && IsScriptsPBO(pbo) ? "DayZ" : null;
 
         foreach (var file in CollectionsMarshal.AsSpan(pbo.Files))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                PBO.ExtractFile(file, path, injectSubDir);
+                PBO.ExtractFile(file, path);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
