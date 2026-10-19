@@ -67,7 +67,7 @@ internal sealed class PBO : IDisposable
                     PropertiesPairs.Add(new KeyValuePair<string, string>(name, value));
 
                     if (name == "prefix")
-                        Prefix = value;
+                        Prefix = value.Replace('\\', '/');
                     else if (name == "obfuscated")
                         IsObfuscated = true;
                 }

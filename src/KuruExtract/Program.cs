@@ -12,6 +12,16 @@ public class Program
 
     public static int Main(string[] args)
     {
+        // be relaxed about the terminal: when TERM is missing or unknown on POSIX,
+        // assume an xterm-compatible terminal so ANSI-dependent UI (prompts,
+        // progress) doesn't fail with NotSupportedException
+        if (!OperatingSystem.IsWindows()
+            && AnsiConsole.Profile.Capabilities.Interactive
+            && !AnsiConsole.Profile.Capabilities.Ansi)
+        {
+            AnsiConsole.Profile.Capabilities.Ansi = true;
+        }
+
         var app = VelopackApp.Build();
 
         if (OperatingSystem.IsWindows())

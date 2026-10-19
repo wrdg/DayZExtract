@@ -17,7 +17,9 @@ internal readonly record struct FileEntry(
     // the stored offset field is discarded - we compute startOffset from the running data position
     public static FileEntry Read(RVBinaryReader input, int startOffset)
     {
-        var fileName        = input.ReadAsciiz();
+        // PBO entry paths use backslash separators; normalize to '/' so they
+        // resolve as directories on POSIX (where '\' is a valid filename char)
+        var fileName        = input.ReadAsciiz().Replace('\\', '/');
         var compressedMagic = input.ReadInt32();
         var uncompressedSize = input.ReadInt32();
         _ = input.ReadInt32(); // stored offset - ignored, we use startOffset
